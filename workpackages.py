@@ -7,16 +7,12 @@ License: MIT
 """
 
 import configparser
-import getpass
-import json
 import os
 import shutil
-import subprocess
 import sys
-import tempfile
+import sqlite3
 
-import psycopg2
-
+WORKPACKAGES_SUBDIR="workpackages"
 
 class WorkPackagesError(Exception):
     pass
@@ -49,6 +45,7 @@ def _check_has_working_dir():
 def _check_config():
     _check_has_working_dir()
 
+
 def show_usage():
     print("workpackages")
     print("")
@@ -62,8 +59,38 @@ def load_config(config_filename):
     _check_config()
 
 
+def _prepare(project_dir, working_dir, subdir):
+    if os.path.exists(project_dir):
+        shutil.rmtree(project_dir)
+
+    if not os.path.exists(working_dir + "/" + subdir ):
+        os.mkdir(working_dir + "/" + subdir)
+
+    i = shutil.ignore_patterns(subdir)
+    shutil.copytree(working_dir, project_dir, ignore=i)
+
+
 def create_workackages():
-    pass
+    # get distinct values of split column
+    conn = sqlite3.connect(config.working_dir + "/" + config.data_file)
+    cursor = conn.execute("SELECT DISTINCT " + config.split_column + " FROM " + config.master_table)
+    splits = []
+    for row in cursor:
+        splits += [row[0]]
+    print ("Splits:" + str(splits))
+    conn.close() # to not copy have wal & shm
+
+    # Prepare structure
+    for s in splits:
+        # Create resulting folder structure
+        project_folder = config.working_dir + "/" + WORKPACKAGES_SUBDIR + "/" + config.split_column + "_" + s
+        _prepare(project_folder, config.working_dir, WORKPACKAGES_SUBDIR)
+        master_split_table = project_folder + "/" + config.data_file
+        conn = sqlite3.connect(master_split_table)
+        conn.execute("DELETE FROM " + config.master_table + " WHERE " + config.split_column + "='" + s + "'")
+        conn.commit()
+        conn.close()
+
 
 def main():
     if len(sys.argv) < 2:
