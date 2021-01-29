@@ -11,8 +11,8 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y \
               python3-pip \
-              python3-pytest \
-              python3-sqlite
+              python3-pytest
+          pip3 install sqlite3
 
       - name: run tests
         run: |
