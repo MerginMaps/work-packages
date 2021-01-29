@@ -87,6 +87,7 @@ def create_workackages():
         _prepare(project_folder, config.working_dir, WORKPACKAGES_SUBDIR)
         master_split_table = project_folder + "/" + config.data_file
         conn = sqlite3.connect(master_split_table)
+        # error
         conn.execute("DELETE FROM " + config.master_table + " WHERE " + config.split_column + "='" + s + "'")
         conn.commit()
         conn.close()
