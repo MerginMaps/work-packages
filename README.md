@@ -1,6 +1,6 @@
-![Auto Tests](https://github.com/lutraconsulting/mergin-workpackages/workflows/Auto%20Tests/badge.svg)
+![Auto Tests](https://github.com/lutraconsulting/mergin-work-packages/workflows/Auto%20Tests/badge.svg)
 
-# mergin-workpackages
+# mergin-work-packages
 Mergin WorkPackages: manage field surveys for multiple teams 
 
 # Run tests 
