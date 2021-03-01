@@ -1,13 +1,17 @@
 
-# Combined split/merge algorithm that:
-# 1. Brings any changes from work packages to the master database
-# 2. Regenerates work packages based on the master database
+"""
+Combined split/merge algorithm that:
+1. Brings any changes from work packages to the master database
+2. Regenerates work packages based on the master database
+"""
 
 import sqlite3
 import os
 import shutil
 import pygeodiff
 from pathlib import Path
+
+from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 
 # Layout of files:
 #
@@ -84,16 +88,59 @@ def make_work_packages(data_dir, wp_names, wp_tables):
     # create new master_gpkg in the output directory
     shutil.copy(master_gpkg_input, master_gpkg_output)
 
+    # copy "base" remapping DB to "output" where we may be adding some more entries
+    remap_db_base = os.path.join(base_dir, "remap.db")
+    remap_db_output = os.path.join(output_dir, "remap.db")
+    if old_wp_names and not os.path.exists(remap_db_base):
+        raise ValueError("remap.db should exist!")
+    if not old_wp_names and os.path.exists(remap_db_base):
+        raise ValueError("remap.db should not exist yet!")
+    if os.path.exists(remap_db_base):
+        shutil.copy(remap_db_base, remap_db_output)
+
     # STAGE 1: Bring the changes from WPs to master
     # option 1A: create WP changeset + remap changeset + apply changeset
     # option 1B: remap WP database + create changeset + apply changeset  --- winner
     for wp_name in old_wp_names:
         print("WP " + wp_name)
 
-        wp_gpkg_input = os.path.join(input_dir, wp_name + '.gpkg')   # may have been modified by user
-        wp_gpkg_base = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user
+        # get max. fids for tables (so that we know where to start when remapping)
+        db = sqlite3.connect(master_gpkg_output)
+        c = db.cursor()
+        new_master_fids = {}
+        for (table_name, table_column_name) in wp_tables:
+            c.execute("SELECT max(fid) FROM {}".format(table_name))
+            new_master_fid = c.fetchone()[0]
+            if new_master_fid is None:
+                new_master_fid = 1  # empty table so far
+            else:
+                new_master_fid += 1
+            new_master_fids[table_name] = new_master_fid
+        c = None
+        db = None
 
-        # TODO: re-map local fids of the WP gpkg to master fids using geodiff (based on previously created mapping DB)
+        # TODO: check whether the changes in the DB are allowed (matching the deciding column)
+
+        wp_gpkg_base_wp_fids = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user
+        wp_gpkg_input_wp_fids = os.path.join(input_dir, wp_name + '.gpkg')   # may have been modified by user
+
+        wp_gpkg_base = os.path.join(tmp_dir, wp_name + '-base.gpkg')   # should not have been modified by user
+        wp_gpkg_input = os.path.join(tmp_dir, wp_name + '-input.gpkg')   # may have been modified by user
+        shutil.copy(wp_gpkg_base_wp_fids, wp_gpkg_base)
+        shutil.copy(wp_gpkg_input_wp_fids, wp_gpkg_input)
+
+        # re-map local fids of the WP gpkg to master fids (based on previously created mapping DB)
+        for x in [wp_gpkg_base, wp_gpkg_input]:
+
+            db = sqlite3.connect(x)
+            db.enable_load_extension(True)  # for spatialite
+            c = db.cursor()
+            c.execute("SELECT load_extension(\"mod_spatialite\");")  # TODO: how to deal with it?
+            c.execute("ATTACH '{}' AS remap".format(remap_db_output))
+            c.execute("BEGIN")
+            for (table_name, table_column_name) in wp_tables:
+                remap_table_wp_to_master(c, table_name, wp_name, new_master_fids[table_name])
+            c.execute("COMMIT")
 
         wp_changeset_base_input = os.path.join(tmp_dir, wp_name + '-base-input.diff')
         wp_changeset_base_input_json = os.path.join(tmp_dir, wp_name + '-base-input.json')
@@ -163,18 +210,21 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         shutil.copy(master_gpkg_output, wp_gpkg_output)
 
         # filter out data that does not belong to the WP
+        # and remap fids in the DB from master to WP-local fids
         db = sqlite3.connect(os.path.join(output_dir, wp_name+'.gpkg'))
+        db.enable_load_extension(True)  # for spatialite
         c = db.cursor()
+        c.execute("SELECT load_extension(\"mod_spatialite\");")  # TODO: how to deal with it?
+        c.execute("ATTACH '{}' AS remap".format(remap_db_output))
         c.execute("BEGIN")
         for (table_name, table_column_name) in wp_tables:
             # TODO: support custom SQL to determine work package name(s) for the row
             c.execute("delete from {} where {} != '{}'".format(table_name, table_column_name, wp_name))  # TODO: escaping!
+            remap_table_master_to_wp(c, table_name, wp_name)
         # TODO: drop tables that are not listed at all (?)
         c.execute("COMMIT")
 
         # TODO: run VACUUM FULL (?)
-
-        # TODO: remap fids in the DB from master to WP-local fids
 
         # get changeset between the one received from WP and newly created GPKG
         if os.path.exists(wp_gpkg_input):
