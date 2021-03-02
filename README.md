@@ -68,6 +68,20 @@ The main project and the work package projects can be shared with others and upd
 you run the tool, it will do the two-way sync: pull changes from projects for teams A and B, merge
 them with changes in the main project, and finally update data in all connected Mergin projects.
 
+## Under the hood
+
+The following figure illustrates how the merge/split algorithm works in two steps to first merge changes
+in the main (master) project with changes in the work package projects, followed by update of the work
+package projects to a new state based on the merged content of the main (master) project. 
+
+![Algorithm overview](img/wp-alg.png) 
+
+The "base" data are stored in `mergin-work-packages` sub-directory of the main Mergin project
+from previous runs of the tool (and should never be edited by users). The "input" data are
+the latest versions of the user data in the main (master) project and in work package projects.
+The "output" data are then pushed to the main (master) project and work package projects,
+and also kept as the "base" data for the next run of the tool.
+
 ## Run tests 
 
 ### MacOS
