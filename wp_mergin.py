@@ -21,6 +21,7 @@ These files are used internally by the algorithm and should not be modified (or 
 """
 
 import getpass
+import glob
 import mergin
 import mergin.client_push
 import os
@@ -58,6 +59,20 @@ os.makedirs(wp_alg_input_dir)
 master_dir = os.path.join(tmp_dir, 'master')
 master_config_db = os.path.join(master_dir, 'work-packages', 'config.db')
 
+
+def get_master_project_files(directory):
+    """ Returns list of relative file names from the master project that should be copied to the new WP projects """
+    mergin_internal_dir = os.path.join(directory, '.mergin')
+    wp_dir = os.path.join(directory, 'work-packages')
+    files = []
+    for filename in glob.iglob(os.path.join(directory, '**'), recursive=True):
+        if filename.startswith(mergin_internal_dir) or filename.startswith(wp_dir):
+            continue
+        filename_relative = filename[len(directory)+1:]  # remove prefix
+        if len(filename_relative):
+            files.append(filename_relative)
+    return files
+
 # 1. given master mergin project name (martin/wp-master)
 #    - default sub-directory with work packages: "work-packages"
 #      - config.db
@@ -76,6 +91,11 @@ shutil.copy(os.path.join(master_dir, 'work-packages', 'remap.db'), os.path.join(
 
 print("Reading configuration from " + master_config_db)
 wp_names, wp_tables = load_config_from_db(master_config_db)
+
+master_project_files = get_master_project_files(master_dir)
+assert gpkg_path in master_project_files
+master_project_files.remove(gpkg_path)
+print("Master project files to copy to new projects: " + str(master_project_files))
 
 # list of WP names that did not exist previously (and we will have to create a new Mergin project for them)
 wp_new = set()
@@ -126,7 +146,12 @@ for wp_name, wp_value, wp_mergin in wp_names:
         mc.download_project(wp_mergin, wp_dir)
 
         shutil.copy(os.path.join(wp_alg_output_dir, wp_name+'.gpkg'), os.path.join(wp_dir, gpkg_path))
-        # TODO: copy other files from master project
+
+        # copy other files from master project
+        for filename in master_project_files:
+            print("Adding file from master project: " + filename)
+            # TODO: we may need to create sub-directories
+            shutil.copy(os.path.join(master_dir, filename), os.path.join(wp_dir, filename))
 
     # new version of the geopackage
     shutil.copy(os.path.join(wp_alg_output_dir, wp_name+'.gpkg'), os.path.join(wp_dir, gpkg_path))
