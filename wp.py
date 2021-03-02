@@ -33,6 +33,36 @@ from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 #   WP1-input-output.diff   -- difference between "input" and "output" (collated changes to be applied to the WP)
 
 
+def load_config_from_db(config_db):
+    """
+    Returns a configuration tuple: wp_names and wp_tables loaded from the configuration database.
+    See config.sql for schema of the configuration tables.
+
+    wp_names = list of tuples (wp name, matching value(s) of the column, mergin project name)
+     - describes what work packages to create and how are they determined
+
+    wp_tables = list of tuples (table name, column name for filtering of rows)
+     - describes which tables will get filtered
+    """
+
+    db = sqlite3.connect(config_db)
+    c = db.cursor()
+    wp_names = []
+    for row in c.execute("SELECT * FROM wp_names"):
+        wp_name, wp_value, wp_mergin_project = row
+        if "," in wp_value:   # multiple-value matching?
+            wp_value = wp_value.split(",")
+        else:
+            wp_value = wp_value
+        wp_names.append((wp_name, wp_value, wp_mergin_project))
+
+    wp_tables = []
+    for row in c.execute("SELECT * FROM wp_tables"):
+        wp_tables.append(row)
+
+    return wp_names, wp_tables
+
+
 def make_work_packages(data_dir, wp_names, wp_tables):
     """ Do it! """
 
@@ -199,7 +229,7 @@ def make_work_packages(data_dir, wp_names, wp_tables):
     # option 2A: make changeset between "old" and "new" master DB + filter changeset based on WP + remap changeset
     # option 2B: make "new" WP database + filter database based on WP + remap DB    --- winner
 
-    for wp_name in wp_names:
+    for wp_name, wp_value, wp_mergin_project in wp_names:
         wp_gpkg_base = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user
         wp_gpkg_input = os.path.join(input_dir, wp_name + '.gpkg')  # may have been modified by user
         wp_gpkg_output = os.path.join(output_dir, wp_name + '.gpkg')  # does not exist yet
@@ -218,13 +248,22 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         c.execute("ATTACH '{}' AS remap".format(remap_db_output))
         c.execute("BEGIN")
         for (table_name, table_column_name) in wp_tables:
-            # TODO: support custom SQL to determine work package name(s) for the row
-            c.execute("delete from {} where {} != '{}'".format(table_name, table_column_name, wp_name))  # TODO: escaping!
+            if isinstance(wp_value, str):
+                print(f"delete from {table_name} where {table_column_name} != '{wp_value}'")
+                c.execute(f"delete from {table_name} where {table_column_name} != '{wp_value}'")
+            elif isinstance(wp_value, list):
+                values = map(lambda x: "'"+x+"'", wp_value)
+                values_str = ",".join(values)
+                c.execute(f"delete from {table_name} where {table_column_name} not in ({values_str})")
+            else:
+                # we may want to support some custom SQL at some point too
+                raise ValueError("what?")
             remap_table_master_to_wp(c, table_name, wp_name)
         # TODO: drop tables that are not listed at all (?)
         c.execute("COMMIT")
 
-        # TODO: run VACUUM FULL (?)
+        # run VACUUM to purge anything that does not belong to the WP data
+        c.execute("VACUUM")
 
         # get changeset between the one received from WP and newly created GPKG
         if os.path.exists(wp_gpkg_input):
