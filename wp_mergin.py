@@ -86,8 +86,11 @@ print("Done.")
 
 shutil.copy(os.path.join(master_dir, gpkg_path), os.path.join(wp_alg_input_dir, 'master.gpkg'))
 
-shutil.copy(os.path.join(master_dir, 'work-packages', 'master.gpkg'), os.path.join(wp_alg_base_dir, 'master.gpkg'))
-shutil.copy(os.path.join(master_dir, 'work-packages', 'remap.db'), os.path.join(wp_alg_base_dir, 'remap.db'))
+# the master.gpkg and remap.db should exist if this is not the first run of the tool
+if os.path.exists(os.path.join(master_dir, 'work-packages', 'master.gpkg')):
+    shutil.copy(os.path.join(master_dir, 'work-packages', 'master.gpkg'), os.path.join(wp_alg_base_dir, 'master.gpkg'))
+if os.path.exists(os.path.join(master_dir, 'work-packages', 'remap.db')):
+    shutil.copy(os.path.join(master_dir, 'work-packages', 'remap.db'), os.path.join(wp_alg_base_dir, 'remap.db'))
 
 print("Reading configuration from " + master_config_db)
 wp_names, wp_tables = load_config_from_db(master_config_db)
