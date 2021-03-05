@@ -64,7 +64,15 @@ def load_config_from_db(config_db):
 
 
 def make_work_packages(data_dir, wp_names, wp_tables):
-    """ Do it! """
+    """
+    This is the core part of the algorithm for merging and splitting data for work packages.
+    It expects a data directory with layout of directories and files as described in the header
+    of this file.
+
+    The first stage collects changes from the master DB and the work package DBs and
+    combines them together, resolving any conflicts. At the end of the first stage we have
+    updated master database. The second stage then re-creates individual work package DBs.
+    """
 
     base_dir = os.path.join(data_dir, 'base')   # where the non-modified GPKGs from the last run should be
     input_dir = os.path.join(data_dir, 'input')   # where the existing GPKG for each existing WP should be
@@ -90,18 +98,8 @@ def make_work_packages(data_dir, wp_names, wp_tables):
                 old_wp_names.append(wp_name)
     print("existing WPs: " + str(old_wp_names))
 
-    def geodiff_callback(level, text_bytes):
-        text = text_bytes.decode()  # convert bytes to str
-        if level == pygeodiff.GeoDiff.LevelError:
-            print("GEODIFF: " + text)
-        elif level == pygeodiff.GeoDiff.LevelWarning:
-            print("GEODIFF: " + text)
-        else:
-            print("GEODIFF: " + text)
-
     geodiff = pygeodiff.GeoDiff()
     geodiff.set_maximum_logger_level(geodiff.LevelDebug)
-    #geodiff.set_logger_callback(geodiff_callback)
 
     master_gpkg_base = os.path.join(base_dir, 'master.gpkg')  # should not have been modified
     master_gpkg_input = os.path.join(input_dir, 'master.gpkg')   # this could have been modified by users
@@ -129,8 +127,7 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         shutil.copy(remap_db_base, remap_db_output)
 
     # STAGE 1: Bring the changes from WPs to master
-    # option 1A: create WP changeset + remap changeset + apply changeset
-    # option 1B: remap WP database + create changeset + apply changeset  --- winner
+    # (remap WP database + create changeset + rebase changeset)
     for wp_name in old_wp_names:
         print("WP " + wp_name)
 
@@ -225,9 +222,7 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         geodiff.list_changes(master_base_to_output, master_base_to_output_json)
 
     # STAGE 2: Regenerate WP databases
-
-    # option 2A: make changeset between "old" and "new" master DB + filter changeset based on WP + remap changeset
-    # option 2B: make "new" WP database + filter database based on WP + remap DB    --- winner
+    # (make "new" WP database + filter database based on WP + remap DB)
 
     for wp_name, wp_value, wp_mergin_project in wp_names:
         wp_gpkg_base = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user

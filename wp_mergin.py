@@ -42,10 +42,8 @@ mergin_password = os.getenv('MERGIN_PASSWORD')
 if mergin_password is None:
     mergin_password = getpass.getpass(f'Password for {mergin_user}: ')
 
-tmp_dir = os.path.join(tempfile.gettempdir(), 'mergin-work-packages')
-if os.path.exists(tmp_dir):
-    shutil.rmtree(tmp_dir)
-os.makedirs(tmp_dir)
+# this will create a directory with a random name, e.g. /tmp/mergin-work-packages-w7tbsyd7
+tmp_dir = tempfile.mkdtemp(prefix='mergin-work-packages-')
 
 mc = mergin.MerginClient(login=mergin_user, password=mergin_password)
 
@@ -73,12 +71,11 @@ def get_master_project_files(directory):
             files.append(filename_relative)
     return files
 
-# 1. given master mergin project name (martin/wp-master)
-#    - default sub-directory with work packages: "work-packages"
-#      - config.db
-#      - geopackages from previous steps (aka "base") - master + all WPs + remap databases
 #
-# 2. prepare temp dir, add base dir, fetch gpkgs from WP projects
+# 1. prepare directory with inputs
+#    - fetch master mergin project, read configuration in config.db, copy base files and master input file
+#    - fetch WP projects and copy their input files
+#
 
 print("Downloading master project " + master_mergin_project + "...")
 mc.download_project(master_mergin_project, master_dir)
@@ -120,13 +117,15 @@ for wp_name, wp_value, wp_mergin in wp_names:
         print("First time encountered WP " + wp_name + " - not collecting input")
         wp_new.add(wp_name)
 
-
-# 3. run alg
+#
+# 2. run alg
+#
 
 make_work_packages(wp_alg_dir, wp_names, wp_tables)
 
-
-# 4. push data to all projects
+#
+# 3. push data to all projects
+#
 
 
 def push_mergin_project(mc, directory):

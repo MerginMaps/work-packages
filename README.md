@@ -35,8 +35,13 @@ Data in the `farms` table can look like this:
 
 The `survey_team` column determines which team is responsible for the survey.
 
-To configure the tool, we will create a SQLite database `work-packages/config.db` containing two tables
-(see `config.sql` file in this repo for the exact structure of the tables):
+To configure the tool, we will create a SQLite database `work-packages/config.db` containing two tables.
+The database structure can be set up using the `config.sql` file from this git repository:
+```bash
+$ sqlite3 -init config.sql ~/Survey/work-packages/config.db
+```
+
+These are the configuration tables:
 
 - `wp_tables` table - defines which tables will be filtered and based on which column:
 
@@ -52,6 +57,10 @@ To configure the tool, we will create a SQLite database `work-packages/config.db
   |------|-------|----------------|
   | Team A | A | My Company / Survey Team A |
   | Team B | B | My Company / Survey Team B |
+
+It is possible to set up table data in QGIS - drag'n'drop of the `config.db` file in QGIS will
+load the tables as non-spatial layers which may be edited using the attribute table.
+Alternatively we could use `sqlite3` command line tool and type SQL commands to insert rows.
 
 After this, we are all set to run the tool, with three arguments: 1. name of the main Mergin project, 2. filename
 of the GeoPackage used to split data, 3. Mergin username of the admin, who will be creating/updating the projects.  
