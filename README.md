@@ -19,6 +19,30 @@ With the two-way synchronization provided by this tool:
 - changes in the main project are propagated to the work package projects
 - changes in the work package projects are propagated back to the main project
 
+## Quick start
+
+If you would like to start with a simple pre-configured project:
+
+1. Clone [lutraconsulting/work-packages-demo](https://public.cloudmergin.com/projects/lutraconsulting/work-packages-demo/tree)
+   Mergin project (you can do it either on the web or from the plugin). As the owner
+   of the cloned project, you will have write permissions which are necessary to run the tool.
+   Assuming your Mergin username is `john`, the cloned project could be called `john/test-work-packages`.
+   
+2. Download your cloned project and edit `mergin-work-packages.yml` configuration file.
+   You will at least need to modify the `mergin_project` lines.
+   You could use e.g. `john/farms-Kyle` and `john/farms-Emma` for project names of work packages.
+   After your edits do not forget to sync your changes back to Mergin service.
+
+3. Run the tool with the name of your project: 
+   ```bash
+   $ python3 wp_mergin.py john/test-work-packages
+   ```
+   After the initial run, you should see that the work package projects `john/farms-Kyle` and `john/farms-Emma`
+   got created and they are ready to be used in QGIS or Input, containing subsets of data of the main project.
+
+4. After you do modifications of the data in any of the projects (the main one or the work package projects)
+   and run the tool again as in step 3, changes will be propagated among projects.
+
 ## How to use
 
 We will assume that you have a Mergin project called `Survey` which contains the following files:
@@ -35,38 +59,45 @@ Data in the `farms` table can look like this:
 
 The `survey_team` column determines which team is responsible for the survey.
 
-To configure the tool, we will create a SQLite database `work-packages/config.db` containing two tables.
-The database structure can be set up using the `config.sql` file from this git repository:
-```bash
-$ sqlite3 -init config.sql ~/Survey/work-packages/config.db
+To configure the tool, we will create a YAML configuration file named `mergin-work-packages.yml`
+and placed in the root folder of Mergin project. Here is how it can look like:
+
+```yaml
+file: survey.gpkg
+
+tables:
+  - name: farms
+    method: filter-column
+    filter-column-name: survey_team
+
+work-packages:
+  - name: TeamA
+    value: A
+    mergin-project: My Company/Survey Team A
+  - name: TeamB
+    value: B
+    mergin-project: My Company/Survey Team B
 ```
 
-These are the configuration tables:
+Next to the path to the GeoPackage (`file`), there are the following bits of configuration:
 
-- `wp_tables` table - defines which tables will be filtered and based on which column:
+- `tables` list - defines which tables will be filtered and based on which column.
+  Each item has to define name of the filtered table (`name`) and filtering method
+  (`method`). Currently `filter-column` is the only supported method, where values
+  from the given column are used to determine whether the row belongs to a particular
+  work package or not - this is set with `filter-column-name`.
 
-  | table_name | filter_column_name |
-  |------------|--------------------|
-  | farms | survey_team |
+- `work-packages` list - defines dependent "work package" projects:
+  what is the internally used name of each work package (`name`), what is the expected
+  value of the filter column (`value`) and which Mergin project is assigned to that
+  work package (`mergin-project`). 
 
-- `wp_names` table - defines dependent "work package" projects:
-  what is the internally used name of each work package, what is the expected value of the filter
-  column and which Mergin project is assigned to that work package: 
-
-  | name | value | mergin_project |
-  |------|-------|----------------|
-  | Team A | A | My Company / Survey Team A |
-  | Team B | B | My Company / Survey Team B |
-
-It is possible to set up table data in QGIS - drag'n'drop of the `config.db` file in QGIS will
-load the tables as non-spatial layers which may be edited using the attribute table.
-Alternatively we could use `sqlite3` command line tool and type SQL commands to insert rows.
-
-After this, we are all set to run the tool, with three arguments: 1. name of the main Mergin project, 2. filename
-of the GeoPackage used to split data, 3. Mergin username of the admin, who will be creating/updating the projects.  
+After the configuration file is written (and synced to the Mergin project), we are all
+set to run the tool. We only need to specify name of the main Mergin project, the tool
+will ask about the login credentials to Mergin and run the processing:  
 
 ```bash
-$ python3 wp_mergin.py "My Company/Survey" survey.gpkg MyCompanyAdmin
+$ python3 wp_mergin.py "My Company/Survey"
 ```
 
 After the initial run of the tool, the `Survey Team A` and `Survey Team B` Mergin projects will be created,

@@ -204,7 +204,7 @@ def make_work_packages(data_dir, wp_config):
         wp_changeset_conflicts = os.path.join(tmp_dir, wp_name + '-conflicts.json')
 
         # create changeset using pygeodiff using wp_gpkg_base + wp_gpkg_input
-        print("--- create changeset")
+        #print("--- create changeset")
         geodiff.create_changeset(wp_gpkg_base, wp_gpkg_input, wp_changeset_base_input)
 
         # summarize changes that have happened in master (base master VS input master)
@@ -216,7 +216,7 @@ def make_work_packages(data_dir, wp_config):
         # but this function is not (yet) available in pygeodiff
 
         # create tmp_master_with_wp
-        print("--- copy + apply changeset")
+        #print("--- copy + apply changeset")
         tmp_master_with_wp = os.path.join(tmp_dir, "master-"+wp_name+".gpkg")
         shutil.copy(master_gpkg_base, tmp_master_with_wp)
         geodiff.apply_changeset(tmp_master_with_wp, wp_changeset_base_input)
@@ -228,12 +228,12 @@ def make_work_packages(data_dir, wp_config):
         # - WP1 deleted a row that WP2 updated
         # - WP1 inserted a row with FID that WP2 also wants to insert -- this should not happen
         #   because remapping should assign unique master FIDs
-        print("--- rebase")
+        #print("--- rebase")
         geodiff.rebase(master_gpkg_base, master_gpkg_output, tmp_master_with_wp, wp_changeset_conflicts)
 
         # the tmp_master_with_wp now contains stuff from output master and WP changes on top of that
         # let's overwrite the output master with this addition :-O
-        print("--- copy 2")
+        #print("--- copy 2")
         shutil.copy(tmp_master_with_wp, master_gpkg_output)
 
     # summarize changes that have happened in WPs (input master VS output master)
@@ -275,7 +275,6 @@ def make_work_packages(data_dir, wp_config):
         c.execute("BEGIN")
         for wp_table in wp_config.wp_tables:
             if isinstance(wp_value, (str,int,float)):
-                print(f"delete from {wp_table.name} where {wp_table.filter_column_name} != '{wp_value}'")
                 c.execute(f"delete from {wp_table.name} where {wp_table.filter_column_name} != '{wp_value}'")
             elif isinstance(wp_value, list):
                 values = map(lambda x: "'"+str(x)+"'", wp_value)

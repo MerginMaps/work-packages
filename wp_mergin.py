@@ -29,14 +29,16 @@ import shutil
 import sys
 import tempfile
 
-from wp import load_config_from_db, make_work_packages
+from wp import load_config_from_yaml, make_work_packages
 
-if len(sys.argv) != 4:
-    raise ValueError("Need a parameter with master Mergin project name + relative path to master DB + Mergin username")
+if len(sys.argv) != 2:
+    raise ValueError("Need a parameter with master Mergin project name")
 
 master_mergin_project = sys.argv[1]    # e.g.  martin/wp-master
-gpkg_path = sys.argv[2]                # e.g.  data.gpkg
-mergin_user = sys.argv[3]              # e.g.  martin
+
+mergin_user = os.getenv('MERGIN_USERNAME')
+if mergin_user is None:
+    mergin_user = input('Mergin username: ')
 
 mergin_password = os.getenv('MERGIN_PASSWORD')
 if mergin_password is None:
@@ -55,16 +57,17 @@ os.makedirs(wp_alg_base_dir)
 os.makedirs(wp_alg_input_dir)
 
 master_dir = os.path.join(tmp_dir, 'master')
-master_config_db = os.path.join(master_dir, 'work-packages', 'config.db')
+master_config_yaml = os.path.join(master_dir, 'mergin-work-packages.yml')
 
 
 def get_master_project_files(directory):
     """ Returns list of relative file names from the master project that should be copied to the new WP projects """
     mergin_internal_dir = os.path.join(directory, '.mergin')
+    config_file = os.path.join(directory, 'mergin-work-packages.yml')
     wp_dir = os.path.join(directory, 'work-packages')
     files = []
     for filename in glob.iglob(os.path.join(directory, '**'), recursive=True):
-        if filename.startswith(mergin_internal_dir) or filename.startswith(wp_dir):
+        if filename.startswith(mergin_internal_dir) or filename.startswith(wp_dir) or filename == config_file:
             continue
         filename_relative = filename[len(directory)+1:]  # remove prefix
         if len(filename_relative):
@@ -77,9 +80,14 @@ def get_master_project_files(directory):
 #    - fetch WP projects and copy their input files
 #
 
+
 print("Downloading master project " + master_mergin_project + "...")
 mc.download_project(master_mergin_project, master_dir)
 print("Done.")
+
+print("Reading configuration from " + master_config_yaml)
+wp_config = load_config_from_yaml(master_config_yaml)
+gpkg_path = wp_config.master_gpkg
 
 shutil.copy(os.path.join(master_dir, gpkg_path), os.path.join(wp_alg_input_dir, 'master.gpkg'))
 
@@ -89,9 +97,6 @@ if os.path.exists(os.path.join(master_dir, 'work-packages', 'master.gpkg')):
 if os.path.exists(os.path.join(master_dir, 'work-packages', 'remap.db')):
     shutil.copy(os.path.join(master_dir, 'work-packages', 'remap.db'), os.path.join(wp_alg_base_dir, 'remap.db'))
 
-print("Reading configuration from " + master_config_db)
-wp_names, wp_tables = load_config_from_db(master_config_db)
-
 master_project_files = get_master_project_files(master_dir)
 assert gpkg_path in master_project_files
 master_project_files.remove(gpkg_path)
@@ -100,7 +105,8 @@ print("Master project files to copy to new projects: " + str(master_project_file
 # list of WP names that did not exist previously (and we will have to create a new Mergin project for them)
 wp_new = set()
 
-for wp_name, wp_value, wp_mergin in wp_names:
+for wp in wp_config.wp_names:
+    wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
     wp_dir = os.path.join(tmp_dir, 'wp-'+wp_name)
 
     wp_base_file = os.path.join(master_dir, 'work-packages', wp_name + '.gpkg')
@@ -121,7 +127,7 @@ for wp_name, wp_value, wp_mergin in wp_names:
 # 2. run alg
 #
 
-make_work_packages(wp_alg_dir, wp_names, wp_tables)
+make_work_packages(wp_alg_dir, wp_config)
 
 #
 # 3. push data to all projects
@@ -137,7 +143,8 @@ def push_mergin_project(mc, directory):
     return True
 
 
-for wp_name, wp_value, wp_mergin in wp_names:
+for wp in wp_config.wp_names:
+    wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
     wp_dir = os.path.join(tmp_dir, 'wp-'+wp_name)
 
     if wp_name in wp_new:
@@ -168,9 +175,12 @@ for wp_name, wp_value, wp_mergin in wp_names:
 # in the last step, let's update the master project
 # (update the master database file and update base files for work packages)
 shutil.copy(os.path.join(wp_alg_output_dir, 'master.gpkg'), os.path.join(master_dir, gpkg_path))
+if not os.path.exists(os.path.join(master_dir, 'work-packages')):
+    os.makedirs(os.path.join(master_dir, 'work-packages'))
 shutil.copy(os.path.join(wp_alg_output_dir, 'master.gpkg'), os.path.join(master_dir, 'work-packages', 'master.gpkg'))
 shutil.copy(os.path.join(wp_alg_output_dir, 'remap.db'), os.path.join(master_dir, 'work-packages', 'remap.db'))
-for wp_name, wp_value, wp_mergin in wp_names:
+for wp in wp_config.wp_names:
+    wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
     shutil.copy(os.path.join(wp_alg_output_dir, wp_name+'.gpkg'), os.path.join(master_dir, 'work-packages', wp_name+'.gpkg'))
 
 print("Uploading new version of the master project: " + master_mergin_project)
