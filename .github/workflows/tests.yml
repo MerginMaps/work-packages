@@ -13,7 +13,8 @@ jobs:
               python3-pip \
               python3-pytest \
               python3-gdal \
-              python3-yaml
+              python3-yaml \
+              libsqlite3-mod-spatialite
           pip3 install pysqlite3 pygeodiff mergin-client
 
       - name: run tests
