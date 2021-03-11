@@ -11,6 +11,8 @@ import shutil
 import pygeodiff
 from pathlib import Path
 
+import yaml
+
 from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 
 # Layout of files:
@@ -61,6 +63,25 @@ def load_config_from_db(config_db):
         wp_tables.append(row)
 
     return wp_names, wp_tables
+
+
+def load_config_from_yaml(config_yaml):
+
+    wp_names, wp_tables = [], []
+
+    with open(config_yaml, 'r') as stream:
+        try:
+            root_yaml = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise ValueError("Unable to parse config YAML:\n" + str(exc))
+            return None
+        master_gpkg = root_yaml['file']  # TODO
+        for name_yaml in root_yaml['work-packages']:
+            wp_names.append((name_yaml['name'], name_yaml['value'], name_yaml['mergin-project']))
+        for table_yaml in root_yaml['tables']:
+            wp_tables.append((table_yaml['name'], table_yaml['filter-column-name']))
+
+        return wp_names, wp_tables
 
 
 def make_work_packages(data_dir, wp_names, wp_tables):
@@ -243,11 +264,11 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         c.execute("ATTACH '{}' AS remap".format(remap_db_output))
         c.execute("BEGIN")
         for (table_name, table_column_name) in wp_tables:
-            if isinstance(wp_value, str):
+            if isinstance(wp_value, (str,int,float)):
                 print(f"delete from {table_name} where {table_column_name} != '{wp_value}'")
                 c.execute(f"delete from {table_name} where {table_column_name} != '{wp_value}'")
             elif isinstance(wp_value, list):
-                values = map(lambda x: "'"+x+"'", wp_value)
+                values = map(lambda x: "'"+str(x)+"'", wp_value)
                 values_str = ",".join(values)
                 c.execute(f"delete from {table_name} where {table_column_name} not in ({values_str})")
             else:
