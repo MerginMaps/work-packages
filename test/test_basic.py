@@ -69,9 +69,9 @@ def _make_initial_farm_work_packages(config_file):
     # get data
     create_farm_dataset(os.path.join(tmp_dir, 'input', 'master.gpkg'))
     # get config
-    wp_names, wp_tables = load_config_from_yaml(os.path.join(this_dir, 'config-farm-basic.yml'))
+    wp_config = load_config_from_yaml(os.path.join(this_dir, 'config-farm-basic.yml'))
     # run alg
-    make_work_packages(tmp_dir, wp_names, wp_tables)
+    make_work_packages(tmp_dir, wp_config)
     return tmp_dir_obj
 
 
@@ -136,8 +136,8 @@ def test_update_row_wp():
                                   1000000, {'age_years': 10})
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be the same number of rows as initially
@@ -160,8 +160,8 @@ def test_update_row_master():
                                   9, {'age_years': 20})
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be the same number of rows as initially
@@ -187,8 +187,8 @@ def test_update_row_master_and_wp():
                                   9, {'age_years': 40})
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be the same number of rows as initially
@@ -213,8 +213,8 @@ def test_delete_row_wp():
                                   1000000)
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be one tree missing for master and for Kyle
@@ -235,8 +235,8 @@ def test_delete_row_master():
                                   9)
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be one tree missing for master and for Kyle
@@ -257,8 +257,8 @@ def test_insert_row_wp():
                                   'POINT(6 16)', {'tree_species_id': 1, 'farm_id': 4})
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be one new tree in master and one new tree for Kyle
@@ -279,8 +279,8 @@ def test_insert_row_master():
                                   'POINT(9 19)', {'tree_species_id': 1, 'farm_id': 4})
 
     # run work packaging
-    wp_names, wp_tables = load_config_from_yaml(config_file)
-    make_work_packages(tmp_dir_2.name, wp_names, wp_tables)
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
     output_dir = os.path.join(tmp_dir_2.name, 'output')
 
     # there should be one new tree in master and one new tree for Kyle

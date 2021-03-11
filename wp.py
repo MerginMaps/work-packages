@@ -35,39 +35,47 @@ from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 #   WP1-input-output.diff   -- difference between "input" and "output" (collated changes to be applied to the WP)
 
 
-def load_config_from_db(config_db):
-    """
-    Returns a configuration tuple: wp_names and wp_tables loaded from the configuration database.
-    See config.sql for schema of the configuration tables.
+class WPTable(object):
+    """ Describes how to handle a table in work packages """
+    def __init__(self, name, filter_column_name):
+        """
+        :param name: Name of the database table
+        :param filter_column_name: Name of the column used for filtering
+        """
+        self.name = name
+        self.filter_column_name = filter_column_name
 
-    wp_names = list of tuples (wp name, matching value(s) of the column, mergin project name)
-     - describes what work packages to create and how are they determined
 
-    wp_tables = list of tuples (table name, column name for filtering of rows)
-     - describes which tables will get filtered
-    """
+class WPName(object):
+    """ Describes configuration of a single work package """
+    def __init__(self, name, value, mergin_project):
+        """
+        :param name: Name of work package (user-defined), e.g. Team_A
+        :param value: Accepted value (or values) for filtering
+        :param mergin_project: Associated Mergin project (full name, e.g. lutraconsulting/survey-team-a)
+        """
+        self.name = name
+        self.value = value
+        self.mergin_project = mergin_project
 
-    db = sqlite3.connect(config_db)
-    c = db.cursor()
-    wp_names = []
-    for row in c.execute("SELECT * FROM wp_names"):
-        wp_name, wp_value, wp_mergin_project = row
-        if "," in wp_value:   # multiple-value matching?
-            wp_value = wp_value.split(",")
-        else:
-            wp_value = wp_value
-        wp_names.append((wp_name, wp_value, wp_mergin_project))
 
-    wp_tables = []
-    for row in c.execute("SELECT * FROM wp_tables"):
-        wp_tables.append(row)
-
-    return wp_names, wp_tables
+class WPConfig(object):
+    """ Full configuration of the work packaging algorithm """
+    def __init__(self, master_gpkg, wp_names, wp_tables):
+        """
+        :param wp_names: List of WPName objects
+        :param wp_tables: List of WPTable objects
+        """
+        self.master_gpkg = master_gpkg
+        self.wp_names = wp_names
+        self.wp_tables = wp_tables
 
 
 def load_config_from_yaml(config_yaml):
-
-    wp_names, wp_tables = [], []
+    """
+    Reads configuration of work packages from YAML config file.
+    Returns WPConfig instance or raises an exception if there was a parsing error.
+    """
 
     with open(config_yaml, 'r') as stream:
         try:
@@ -75,16 +83,17 @@ def load_config_from_yaml(config_yaml):
         except yaml.YAMLError as exc:
             raise ValueError("Unable to parse config YAML:\n" + str(exc))
             return None
-        master_gpkg = root_yaml['file']  # TODO
+        master_gpkg = root_yaml['file']
+        wp_names, wp_tables = [], []
         for name_yaml in root_yaml['work-packages']:
-            wp_names.append((name_yaml['name'], name_yaml['value'], name_yaml['mergin-project']))
+            wp_names.append(WPName(name_yaml['name'], name_yaml['value'], name_yaml['mergin-project']))
         for table_yaml in root_yaml['tables']:
-            wp_tables.append((table_yaml['name'], table_yaml['filter-column-name']))
+            wp_tables.append(WPTable(table_yaml['name'], table_yaml['filter-column-name']))
 
-        return wp_names, wp_tables
+        return WPConfig(master_gpkg, wp_names, wp_tables)
 
 
-def make_work_packages(data_dir, wp_names, wp_tables):
+def make_work_packages(data_dir, wp_config):
     """
     This is the core part of the algorithm for merging and splitting data for work packages.
     It expects a data directory with layout of directories and files as described in the header
@@ -156,14 +165,14 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         db = sqlite3.connect(master_gpkg_output)
         c = db.cursor()
         new_master_fids = {}
-        for (table_name, table_column_name) in wp_tables:
-            c.execute("SELECT max(fid) FROM {}".format(table_name))
+        for wp_table in wp_config.wp_tables:
+            c.execute("SELECT max(fid) FROM {}".format(wp_table.name))
             new_master_fid = c.fetchone()[0]
             if new_master_fid is None:
                 new_master_fid = 1  # empty table so far
             else:
                 new_master_fid += 1
-            new_master_fids[table_name] = new_master_fid
+            new_master_fids[wp_table.name] = new_master_fid
         c = None
         db = None
 
@@ -186,8 +195,8 @@ def make_work_packages(data_dir, wp_names, wp_tables):
             c.execute("SELECT load_extension(\"mod_spatialite\");")  # TODO: how to deal with it?
             c.execute("ATTACH '{}' AS remap".format(remap_db_output))
             c.execute("BEGIN")
-            for (table_name, table_column_name) in wp_tables:
-                remap_table_wp_to_master(c, table_name, wp_name, new_master_fids[table_name])
+            for wp_table in wp_config.wp_tables:
+                remap_table_wp_to_master(c, wp_table.name, wp_name, new_master_fids[wp_table.name])
             c.execute("COMMIT")
 
         wp_changeset_base_input = os.path.join(tmp_dir, wp_name + '-base-input.diff')
@@ -245,7 +254,8 @@ def make_work_packages(data_dir, wp_names, wp_tables):
     # STAGE 2: Regenerate WP databases
     # (make "new" WP database + filter database based on WP + remap DB)
 
-    for wp_name, wp_value, wp_mergin_project in wp_names:
+    for wp in wp_config.wp_names:
+        wp_name, wp_value, wp_mergin_project = wp.name, wp.value, wp.mergin_project
         wp_gpkg_base = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user
         wp_gpkg_input = os.path.join(input_dir, wp_name + '.gpkg')  # may have been modified by user
         wp_gpkg_output = os.path.join(output_dir, wp_name + '.gpkg')  # does not exist yet
@@ -263,18 +273,18 @@ def make_work_packages(data_dir, wp_names, wp_tables):
         c.execute("SELECT load_extension(\"mod_spatialite\");")  # TODO: how to deal with it?
         c.execute("ATTACH '{}' AS remap".format(remap_db_output))
         c.execute("BEGIN")
-        for (table_name, table_column_name) in wp_tables:
+        for wp_table in wp_config.wp_tables:
             if isinstance(wp_value, (str,int,float)):
-                print(f"delete from {table_name} where {table_column_name} != '{wp_value}'")
-                c.execute(f"delete from {table_name} where {table_column_name} != '{wp_value}'")
+                print(f"delete from {wp_table.name} where {wp_table.filter_column_name} != '{wp_value}'")
+                c.execute(f"delete from {wp_table.name} where {wp_table.filter_column_name} != '{wp_value}'")
             elif isinstance(wp_value, list):
                 values = map(lambda x: "'"+str(x)+"'", wp_value)
                 values_str = ",".join(values)
-                c.execute(f"delete from {table_name} where {table_column_name} not in ({values_str})")
+                c.execute(f"delete from {wp_table.name} where {wp_table.filter_column_name} not in ({values_str})")
             else:
                 # we may want to support some custom SQL at some point too
                 raise ValueError("what?")
-            remap_table_master_to_wp(c, table_name, wp_name)
+            remap_table_master_to_wp(c, wp_table.name, wp_name)
         # TODO: drop tables that are not listed at all (?)
         c.execute("COMMIT")
 
