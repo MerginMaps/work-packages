@@ -1,4 +1,3 @@
-
 """
 Combined split/merge algorithm that:
 1. Brings any changes from work packages to the master database
@@ -37,6 +36,7 @@ from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 
 class WPTable(object):
     """ Describes how to handle a table in work packages """
+
     def __init__(self, name, filter_column_name):
         """
         :param name: Name of the database table
@@ -48,6 +48,7 @@ class WPTable(object):
 
 class WPName(object):
     """ Describes configuration of a single work package """
+
     def __init__(self, name, value, mergin_project):
         """
         :param name: Name of work package (user-defined), e.g. Team_A
@@ -61,6 +62,7 @@ class WPName(object):
 
 class WPConfig(object):
     """ Full configuration of the work packaging algorithm """
+
     def __init__(self, master_gpkg, wp_names, wp_tables):
         """
         :param wp_names: List of WPName objects
@@ -77,18 +79,17 @@ def load_config_from_yaml(config_yaml):
     Returns WPConfig instance or raises an exception if there was a parsing error.
     """
 
-    with open(config_yaml, 'r') as stream:
+    with open(config_yaml, "r") as stream:
         try:
             root_yaml = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             raise ValueError("Unable to parse config YAML:\n" + str(exc))
-            return None
-        master_gpkg = root_yaml['file']
+        master_gpkg = root_yaml["file"]
         wp_names, wp_tables = [], []
-        for name_yaml in root_yaml['work-packages']:
-            wp_names.append(WPName(name_yaml['name'], name_yaml['value'], name_yaml['mergin-project']))
-        for table_yaml in root_yaml['tables']:
-            wp_tables.append(WPTable(table_yaml['name'], table_yaml['filter-column-name']))
+        for name_yaml in root_yaml["work-packages"]:
+            wp_names.append(WPName(name_yaml["name"], name_yaml["value"], name_yaml["mergin-project"]))
+        for table_yaml in root_yaml["tables"]:
+            wp_tables.append(WPTable(table_yaml["name"], table_yaml["filter-column-name"]))
 
         return WPConfig(master_gpkg, wp_names, wp_tables)
 
@@ -104,10 +105,10 @@ def make_work_packages(data_dir, wp_config):
     updated master database. The second stage then re-creates individual work package DBs.
     """
 
-    base_dir = os.path.join(data_dir, 'base')   # where the non-modified GPKGs from the last run should be
-    input_dir = os.path.join(data_dir, 'input')   # where the existing GPKG for each existing WP should be
-    output_dir = os.path.join(data_dir, 'output')   # !!!! we are deleting this directory and recreating it every time!
-    tmp_dir = os.path.join(data_dir, 'tmp')  # for any temporary stuff (also deleted + recreated)
+    base_dir = os.path.join(data_dir, "base")  # where the non-modified GPKGs from the last run should be
+    input_dir = os.path.join(data_dir, "input")  # where the existing GPKG for each existing WP should be
+    output_dir = os.path.join(data_dir, "output")  # !!!! we are deleting this directory and recreating it every time!
+    tmp_dir = os.path.join(data_dir, "tmp")  # for any temporary stuff (also deleted + recreated)
 
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
@@ -117,29 +118,31 @@ def make_work_packages(data_dir, wp_config):
         shutil.rmtree(tmp_dir)
     os.makedirs(tmp_dir)
 
-    old_wp_names = []   # names of WPs that have been processed before (and we expect their GPKGs exist and may be modified)
+    old_wp_names = (
+        []
+    )  # names of WPs that have been processed before (and we expect their GPKGs exist and may be modified)
     if os.path.exists(base_dir):
         for path in Path(base_dir).iterdir():
             filename = path.name
-            if filename == 'master.gpkg':
-                continue   # skip the master file - it's not a work package
-            if filename.endswith('.gpkg'):
-                wp_name = filename.rstrip('.gpkg')
+            if filename == "master.gpkg":
+                continue  # skip the master file - it's not a work package
+            if filename.endswith(".gpkg"):
+                wp_name = filename.rstrip(".gpkg")
                 old_wp_names.append(wp_name)
     print("existing WPs: " + str(old_wp_names))
 
     geodiff = pygeodiff.GeoDiff()
     geodiff.set_maximum_logger_level(geodiff.LevelDebug)
 
-    master_gpkg_base = os.path.join(base_dir, 'master.gpkg')  # should not have been modified
-    master_gpkg_input = os.path.join(input_dir, 'master.gpkg')   # this could have been modified by users
-    master_gpkg_output = os.path.join(output_dir, 'master.gpkg')  # does not exist yet
+    master_gpkg_base = os.path.join(base_dir, "master.gpkg")  # should not have been modified
+    master_gpkg_input = os.path.join(input_dir, "master.gpkg")  # this could have been modified by users
+    master_gpkg_output = os.path.join(output_dir, "master.gpkg")  # does not exist yet
 
     if os.path.exists(master_gpkg_base):
         # summarize changes that have happened in master (base master VS input master)
         # (this is not needed anywhere in the code, but may be useful for debugging)
-        master_base_to_input = os.path.join(tmp_dir, 'master-base-input.diff')
-        master_base_to_input_json = os.path.join(tmp_dir, 'master-base-input.json')
+        master_base_to_input = os.path.join(tmp_dir, "master-base-input.diff")
+        master_base_to_input_json = os.path.join(tmp_dir, "master-base-input.json")
         geodiff.create_changeset(master_gpkg_base, master_gpkg_input, master_base_to_input)
         geodiff.list_changes(master_base_to_input, master_base_to_input_json)
 
@@ -166,7 +169,7 @@ def make_work_packages(data_dir, wp_config):
         c = db.cursor()
         new_master_fids = {}
         for wp_table in wp_config.wp_tables:
-            c.execute("SELECT max(fid) FROM {}".format(wp_table.name))
+            c.execute(f"""SELECT max(fid) FROM "{wp_table.name}";""")
             new_master_fid = c.fetchone()[0]
             if new_master_fid is None:
                 new_master_fid = 1  # empty table so far
@@ -178,11 +181,11 @@ def make_work_packages(data_dir, wp_config):
 
         # TODO: check whether the changes in the DB are allowed (matching the deciding column)
 
-        wp_gpkg_base_wp_fids = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user
-        wp_gpkg_input_wp_fids = os.path.join(input_dir, wp_name + '.gpkg')   # may have been modified by user
+        wp_gpkg_base_wp_fids = os.path.join(base_dir, wp_name + ".gpkg")  # should not have been modified by user
+        wp_gpkg_input_wp_fids = os.path.join(input_dir, wp_name + ".gpkg")  # may have been modified by user
 
-        wp_gpkg_base = os.path.join(tmp_dir, wp_name + '-base.gpkg')   # should not have been modified by user
-        wp_gpkg_input = os.path.join(tmp_dir, wp_name + '-input.gpkg')   # may have been modified by user
+        wp_gpkg_base = os.path.join(tmp_dir, wp_name + "-base.gpkg")  # should not have been modified by user
+        wp_gpkg_input = os.path.join(tmp_dir, wp_name + "-input.gpkg")  # may have been modified by user
         shutil.copy(wp_gpkg_base_wp_fids, wp_gpkg_base)
         shutil.copy(wp_gpkg_input_wp_fids, wp_gpkg_input)
 
@@ -192,19 +195,19 @@ def make_work_packages(data_dir, wp_config):
             db = sqlite3.connect(x)
             db.enable_load_extension(True)  # for spatialite
             c = db.cursor()
-            c.execute("SELECT load_extension(\"mod_spatialite\");")  # TODO: how to deal with it?
-            c.execute("ATTACH '{}' AS remap".format(remap_db_output))
+            c.execute('SELECT load_extension("mod_spatialite");')  # TODO: how to deal with it?
+            c.execute("ATTACH ? AS remap", (remap_db_output,))
             c.execute("BEGIN")
             for wp_table in wp_config.wp_tables:
                 remap_table_wp_to_master(c, wp_table.name, wp_name, new_master_fids[wp_table.name])
             c.execute("COMMIT")
 
-        wp_changeset_base_input = os.path.join(tmp_dir, wp_name + '-base-input.diff')
-        wp_changeset_base_input_json = os.path.join(tmp_dir, wp_name + '-base-input.json')
-        wp_changeset_conflicts = os.path.join(tmp_dir, wp_name + '-conflicts.json')
+        wp_changeset_base_input = os.path.join(tmp_dir, wp_name + "-base-input.diff")
+        wp_changeset_base_input_json = os.path.join(tmp_dir, wp_name + "-base-input.json")
+        wp_changeset_conflicts = os.path.join(tmp_dir, wp_name + "-conflicts.json")
 
         # create changeset using pygeodiff using wp_gpkg_base + wp_gpkg_input
-        #print("--- create changeset")
+        # print("--- create changeset")
         geodiff.create_changeset(wp_gpkg_base, wp_gpkg_input, wp_changeset_base_input)
 
         # summarize changes that have happened in master (base master VS input master)
@@ -216,8 +219,8 @@ def make_work_packages(data_dir, wp_config):
         # but this function is not (yet) available in pygeodiff
 
         # create tmp_master_with_wp
-        #print("--- copy + apply changeset")
-        tmp_master_with_wp = os.path.join(tmp_dir, "master-"+wp_name+".gpkg")
+        # print("--- copy + apply changeset")
+        tmp_master_with_wp = os.path.join(tmp_dir, "master-" + wp_name + ".gpkg")
         shutil.copy(master_gpkg_base, tmp_master_with_wp)
         geodiff.apply_changeset(tmp_master_with_wp, wp_changeset_base_input)
 
@@ -228,26 +231,26 @@ def make_work_packages(data_dir, wp_config):
         # - WP1 deleted a row that WP2 updated
         # - WP1 inserted a row with FID that WP2 also wants to insert -- this should not happen
         #   because remapping should assign unique master FIDs
-        #print("--- rebase")
+        # print("--- rebase")
         geodiff.rebase(master_gpkg_base, master_gpkg_output, tmp_master_with_wp, wp_changeset_conflicts)
 
         # the tmp_master_with_wp now contains stuff from output master and WP changes on top of that
         # let's overwrite the output master with this addition :-O
-        #print("--- copy 2")
+        # print("--- copy 2")
         shutil.copy(tmp_master_with_wp, master_gpkg_output)
 
     # summarize changes that have happened in WPs (input master VS output master)
     # (this is not needed anywhere in the code, but may be useful for debugging)
-    master_input_to_output = os.path.join(output_dir, 'master-input-output.diff')
-    master_input_to_output_json = os.path.join(output_dir, 'master-input-output.json')
+    master_input_to_output = os.path.join(output_dir, "master-input-output.diff")
+    master_input_to_output_json = os.path.join(output_dir, "master-input-output.json")
     geodiff.create_changeset(master_gpkg_input, master_gpkg_output, master_input_to_output)
     geodiff.list_changes(master_input_to_output, master_input_to_output_json)
 
     if os.path.exists(master_gpkg_base):
         # summarize all the changes that have happened since last run (collated master changes + wp changes)
         # (this is not needed anywhere in the code, but may be useful for debugging)
-        master_base_to_output = os.path.join(output_dir, 'master-base-output.diff')
-        master_base_to_output_json = os.path.join(output_dir, 'master-base-output.json')
+        master_base_to_output = os.path.join(output_dir, "master-base-output.diff")
+        master_base_to_output_json = os.path.join(output_dir, "master-base-output.json")
         geodiff.create_changeset(master_gpkg_base, master_gpkg_output, master_base_to_output)
         geodiff.list_changes(master_base_to_output, master_base_to_output_json)
 
@@ -256,30 +259,32 @@ def make_work_packages(data_dir, wp_config):
 
     for wp in wp_config.wp_names:
         wp_name, wp_value, wp_mergin_project = wp.name, wp.value, wp.mergin_project
-        wp_gpkg_base = os.path.join(base_dir, wp_name + '.gpkg')   # should not have been modified by user
-        wp_gpkg_input = os.path.join(input_dir, wp_name + '.gpkg')  # may have been modified by user
-        wp_gpkg_output = os.path.join(output_dir, wp_name + '.gpkg')  # does not exist yet
-        wp_changeset_input_to_output = os.path.join(output_dir, wp_name + '-input-output.diff')
-        wp_changeset_input_to_output_json = os.path.join(output_dir, wp_name + '-input-output.json')
+        wp_gpkg_base = os.path.join(base_dir, wp_name + ".gpkg")  # should not have been modified by user
+        wp_gpkg_input = os.path.join(input_dir, wp_name + ".gpkg")  # may have been modified by user
+        wp_gpkg_output = os.path.join(output_dir, wp_name + ".gpkg")  # does not exist yet
+        wp_changeset_input_to_output = os.path.join(output_dir, wp_name + "-input-output.diff")
+        wp_changeset_input_to_output_json = os.path.join(output_dir, wp_name + "-input-output.json")
 
         # start from a copy of the master
         shutil.copy(master_gpkg_output, wp_gpkg_output)
 
         # filter out data that does not belong to the WP
         # and remap fids in the DB from master to WP-local fids
-        db = sqlite3.connect(os.path.join(output_dir, wp_name+'.gpkg'))
+        db = sqlite3.connect(os.path.join(output_dir, wp_name + ".gpkg"))
         db.enable_load_extension(True)  # for spatialite
         c = db.cursor()
-        c.execute("SELECT load_extension(\"mod_spatialite\");")  # TODO: how to deal with it?
-        c.execute("ATTACH '{}' AS remap".format(remap_db_output))
+        c.execute('SELECT load_extension("mod_spatialite");')  # TODO: how to deal with it?
+        c.execute("ATTACH ? AS remap", (remap_db_output,))
         c.execute("BEGIN")
         for wp_table in wp_config.wp_tables:
-            if isinstance(wp_value, (str,int,float)):
-                c.execute(f"delete from {wp_table.name} where {wp_table.filter_column_name} != '{wp_value}'")
+            if isinstance(wp_value, (str, int, float)):
+                c.execute(f"""delete from "{wp_table.name}" where "{wp_table.filter_column_name}" != ?""", (wp_value,))
             elif isinstance(wp_value, list):
-                values = map(lambda x: "'"+str(x)+"'", wp_value)
-                values_str = ",".join(values)
-                c.execute(f"delete from {wp_table.name} where {wp_table.filter_column_name} not in ({values_str})")
+                values_str = ",".join(["?"] * len(wp_value))
+                c.execute(
+                    f"""delete from "{wp_table.name}" where "{wp_table.filter_column_name}" not in ({values_str})""",
+                    wp_value,
+                )
             else:
                 # we may want to support some custom SQL at some point too
                 raise ValueError("what?")

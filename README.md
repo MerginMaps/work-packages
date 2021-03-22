@@ -130,3 +130,6 @@ and also kept as the "base" data for the next run of the tool.
 MERGIN_WORKPACKAGES_TMP=~/tmp/mergin_wp /Applications/QGIS3.16.app/Contents/MacOS/bin/python3 -m pytest -v
 ```
 
+## Developing on Windows
+If you're experiencing sqlite3 DLL issues after installing tool dependencies make sure that you have path with `sqlite3.dll` library added to the system PATH 
+environment variables list. For OSGeo4W users you can use `C:\OSGeo4W64\bin`.
