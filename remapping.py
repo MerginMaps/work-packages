@@ -1,4 +1,3 @@
-
 """
 Module for remapping primary key values between master table and "work package" table
 which only contains a subset of data. The "work package" table may have completely
@@ -12,7 +11,7 @@ in the work package table (and vice versa).
 
 def remap_table_name(table_name, wp_name):
     """ Returns name of the mapping table used for a particular table name and work package """
-    return f"remap.{table_name}_{wp_name}"
+    return f'"remap"."{table_name}_{wp_name}"'
 
 
 def _create_remap_table_if_not_exists(cursor, remap_table):
@@ -48,9 +47,6 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     - remap row exists for master_fid -> use wp_fid
     - remap does not exist for master_fid -> insert (master_fid, 1000000+master_fid)
     """
-
-    # TODO: proper escaping
-
     remap_table = remap_table_name(table_name, wp_name)
     _create_remap_table_if_not_exists(cursor, remap_table)
 
@@ -58,37 +54,41 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
 
     # 1. find missing mapped ids
     master_fids_missing = set()
-    sql = f"SELECT {pkey_column} FROM {table_name} " \
-        f"LEFT JOIN {remap_table} AS mapped ON fid = mapped.master_fid WHERE mapped.wp_fid IS NULL"
+    sql = (
+        f"""SELECT "{pkey_column}" FROM "{table_name}" """
+        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.master_fid WHERE mapped.wp_fid IS NULL"""
+    )
     for row in cursor.execute(sql):
         master_fids_missing.add(row[0])
 
     # 2. insert missing mapped ids
-    cursor.execute(f"SELECT max(wp_fid) FROM {remap_table}")
+    cursor.execute(f"""SELECT max(wp_fid) FROM {remap_table}""")
     new_wp_fid = cursor.fetchone()[0]
     if new_wp_fid is None:
-        new_wp_fid = 1000000   # empty table so far
+        new_wp_fid = 1000000  # empty table so far
     else:
         new_wp_fid += 1
 
-    # TODO: prepare sql query
     for master_fid in master_fids_missing:
-        cursor.execute(f"INSERT INTO {remap_table} VALUES ({master_fid}, {new_wp_fid})")
+        cursor.execute(f"""INSERT INTO {remap_table} VALUES (?, ?)""", (master_fid, new_wp_fid))
         new_wp_fid += 1
 
     # 3. remap master ids to WP ids
     mapping = []
-    sql = f"SELECT {pkey_column}, mapped.wp_fid FROM {table_name} " \
-        f"LEFT JOIN {remap_table} AS mapped ON fid = mapped.master_fid"
+    sql = (
+        f"""SELECT "{pkey_column}", mapped.wp_fid FROM "{table_name}" """
+        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.master_fid"""
+    )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
 
     # hack to hopefully avoid possible pkey violations ... who would use negative ids? :-)
-    cursor.execute(f"UPDATE {table_name} SET {pkey_column} = -{pkey_column}")
+    cursor.execute(f"""UPDATE "{table_name}" SET "{pkey_column}" = -"{pkey_column}";""")
 
-    # TODO: prepare sql query
     for master_fid, wp_fid in mapping:
-        cursor.execute(f"UPDATE {table_name} SET {pkey_column} = {wp_fid} WHERE {pkey_column} = -{master_fid}")
+        cursor.execute(
+            f"""UPDATE "{table_name}" SET "{pkey_column}" = ? WHERE "{pkey_column}" = ?""", (wp_fid, -master_fid)
+        )
 
 
 def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
@@ -107,26 +107,29 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
 
     # 1. find missing mapped ids
     wp_fids_missing = set()
-    sql = f"SELECT {pkey_column} FROM {table_name} " \
-            f"LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid WHERE mapped.master_fid IS NULL"
+    sql = (
+        f"""SELECT "{pkey_column}" FROM "{table_name}" """
+        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid WHERE mapped.master_fid IS NULL"""
+    )
     for row in cursor.execute(sql):
         wp_fids_missing.add(row[0])
 
     # 2. insert missing mapped ids
     for wp_fid in wp_fids_missing:
-        cursor.execute(f"INSERT INTO {remap_table} VALUES ({new_master_fid}, {wp_fid})")
+        cursor.execute(f"""INSERT INTO {remap_table} VALUES (?, ?)""", (new_master_fid, wp_fid))
         new_master_fid += 1
 
     # 3. remap WP ids to master ids
     mapping = []  # list of tuples (wp_fid, master_fid)
-    sql = f"SELECT {pkey_column}, mapped.master_fid FROM {table_name} " \
-            f"LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid"
+    sql = (
+        f"""SELECT "{pkey_column}", mapped.master_fid FROM "{table_name}" """
+        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid"""
+    )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
 
     # hack to hopefully avoid possible pkey violations ... who would use negative ids? :-)
-    cursor.execute(f"UPDATE {table_name} SET {pkey_column} = -{pkey_column}")
+    cursor.execute(f"""UPDATE "{table_name}" SET "{pkey_column}" = -"{pkey_column}";""")
 
-    # TODO: prepare sql query
     for wp_fid, master_fid in mapping:
-        cursor.execute(f"UPDATE {table_name} SET {pkey_column} = {master_fid} WHERE fid = -{wp_fid}")
+        cursor.execute(f"""UPDATE "{table_name}" SET "{pkey_column}" = ? WHERE fid = ?""", (master_fid, -wp_fid))
