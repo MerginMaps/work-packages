@@ -94,6 +94,15 @@ print("Done.")
 
 print("Reading configuration from " + master_config_yaml)
 wp_config = load_config_from_yaml(master_config_yaml)
+
+# Handling removed work packages
+wp_names = {f"{wp.name}.gpkg" for wp in wp_config.wp_names}
+master_wp_dir = os.path.join(master_dir, "work-packages")
+for f in os.listdir(master_wp_dir):
+    if f.endswith(".gpkg") and f != "master.gpkg" and f not in wp_names:
+        print(f"Removing '{f}' work package as it's not used anymore.")
+        os.remove(os.path.join(master_wp_dir, f))
+
 gpkg_path = wp_config.master_gpkg
 
 shutil.copy(os.path.join(master_dir, gpkg_path), os.path.join(wp_alg_input_dir, "master.gpkg"))
@@ -159,7 +168,6 @@ def push_mergin_project(mc, directory):
 for wp in wp_config.wp_names:
     wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
     wp_dir = os.path.join(tmp_dir, "wp-" + wp_name)
-    # os.makedirs(wp_dir, exist_ok=True)
 
     if wp_name in wp_new:
         # we need to create new project
