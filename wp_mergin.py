@@ -100,7 +100,8 @@ wp_names = {f"{wp.name}.gpkg" for wp in wp_config.wp_names}
 master_wp_dir = os.path.join(master_dir, "work-packages")
 for f in os.listdir(master_wp_dir):
     if f.endswith(".gpkg") and f != "master.gpkg" and f not in wp_names:
-        print(f"Removing '{f}' work package as it's not used anymore.")
+        missing_wp_name = f.rstrip(".gpkg")
+        print(f"Removing '{missing_wp_name}' work package as it's not used anymore.")
         os.remove(os.path.join(master_wp_dir, f))
 
 gpkg_path = wp_config.master_gpkg
@@ -149,20 +150,14 @@ make_work_packages(wp_alg_dir, wp_config)
 # 3. push data to all projects
 #
 
-SKIPPED_PUSH = -1
-NOTHING_TO_PUSH = 0
-PUSHED = 1
-
 
 def push_mergin_project(mc, directory):
-    if dry_run:
-        return SKIPPED_PUSH
     job = mergin.client_push.push_project_async(mc, directory)
     if job is None:
-        return NOTHING_TO_PUSH  # there is nothing to push (or we only deleted some files)
+        return False  # there is nothing to push (or we only deleted some files)
     mergin.client_push.push_project_wait(job)
     mergin.client_push.push_project_finalize(job)
-    return PUSHED
+    return True
 
 
 for wp in wp_config.wp_names:
@@ -189,14 +184,15 @@ for wp in wp_config.wp_names:
     # new version of the geopackage
     shutil.copy(os.path.join(wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(wp_dir, gpkg_path))
 
+    if dry_run:
+        print(f"This is a dry run - no changes pushed for work package: {wp_name}")
+        continue
     print("Uploading new version of the project: " + wp_mergin + " for work package " + wp_name)
     push_result = push_mergin_project(mc, wp_dir)
-    if push_result == SKIPPED_PUSH:
-        print("This is a dry run - no changes pushed.")
-    elif push_result == NOTHING_TO_PUSH:
-        print("No changes (not creating a new version).")
-    else:
+    if push_mergin_project(mc, wp_dir):
         print("Uploaded a new version: " + mergin.MerginProject(wp_dir).metadata["version"])
+    else:
+        print("No changes (not creating a new version).")
 
 
 # in the last step, let's update the master project
@@ -212,12 +208,12 @@ for wp in wp_config.wp_names:
         os.path.join(wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(master_dir, "work-packages", wp_name + ".gpkg")
     )
 
-print("Uploading new version of the master project: " + master_mergin_project)
-push_result = push_mergin_project(mc, master_dir)
-if push_result == SKIPPED_PUSH:
-    print("This is a dry run - no changes pushed.")
-elif push_result == NOTHING_TO_PUSH:
-    print("No changes (not creating a new version).")
+if dry_run:
+    print(f"This is a dry run - no changes pushed into the master project: {master_mergin_project}")
 else:
-    print("Uploaded a new version: " + mergin.MerginProject(master_dir).metadata["version"])
+    print("Uploading new version of the master project: " + master_mergin_project)
+    if push_mergin_project(mc, master_dir):
+        print("Uploaded a new version: " + mergin.MerginProject(master_dir).metadata["version"])
+    else:
+        print("No changes (not creating a new version).")
 print("Done.")
