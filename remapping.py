@@ -47,8 +47,8 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     - remap row exists for master_fid -> use wp_fid
     - remap does not exist for master_fid -> insert (master_fid, 1000000+master_fid)
     """
-    remap_table = remap_table_name(table_name, wp_name)
-    _create_remap_table_if_not_exists(cursor, remap_table)
+    remap_table_escaped = remap_table_name(table_name, wp_name)
+    _create_remap_table_if_not_exists(cursor, remap_table_escaped)
 
     pkey_column = _table_pkey(cursor, table_name)
 
@@ -56,13 +56,13 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     master_fids_missing = set()
     sql = (
         f"""SELECT "{pkey_column}" FROM "{table_name}" """
-        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.master_fid WHERE mapped.wp_fid IS NULL"""
+        f"""LEFT JOIN {remap_table_escaped} AS mapped ON fid = mapped.master_fid WHERE mapped.wp_fid IS NULL"""
     )
     for row in cursor.execute(sql):
         master_fids_missing.add(row[0])
 
     # 2. insert missing mapped ids
-    cursor.execute(f"""SELECT max(wp_fid) FROM {remap_table}""")
+    cursor.execute(f"""SELECT max(wp_fid) FROM {remap_table_escaped}""")
     new_wp_fid = cursor.fetchone()[0]
     if new_wp_fid is None:
         new_wp_fid = 1000000  # empty table so far
@@ -70,14 +70,14 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
         new_wp_fid += 1
 
     for master_fid in master_fids_missing:
-        cursor.execute(f"""INSERT INTO {remap_table} VALUES (?, ?)""", (master_fid, new_wp_fid))
+        cursor.execute(f"""INSERT INTO {remap_table_escaped} VALUES (?, ?)""", (master_fid, new_wp_fid))
         new_wp_fid += 1
 
     # 3. remap master ids to WP ids
     mapping = []
     sql = (
         f"""SELECT "{pkey_column}", mapped.wp_fid FROM "{table_name}" """
-        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.master_fid"""
+        f"""LEFT JOIN {remap_table_escaped} AS mapped ON fid = mapped.master_fid"""
     )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
