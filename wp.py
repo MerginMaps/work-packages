@@ -12,6 +12,7 @@ from pathlib import Path
 
 import yaml
 
+from wp_utils import escape_double_quotes
 from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 
 # Layout of files:
@@ -169,13 +170,15 @@ def make_work_packages(data_dir, wp_config):
         c = db.cursor()
         new_master_fids = {}
         for wp_table in wp_config.wp_tables:
-            c.execute(f"""SELECT max(fid) FROM "{wp_table.name}";""")
+            wp_table_name = wp_table.name
+            wp_table_name_escaped = escape_double_quotes(wp_table_name)
+            c.execute(f"""SELECT max(fid) FROM {wp_table_name_escaped};""")
             new_master_fid = c.fetchone()[0]
             if new_master_fid is None:
                 new_master_fid = 1  # empty table so far
             else:
                 new_master_fid += 1
-            new_master_fids[wp_table.name] = new_master_fid
+            new_master_fids[wp_table_name] = new_master_fid
         c = None
         db = None
 
@@ -277,12 +280,16 @@ def make_work_packages(data_dir, wp_config):
         c.execute("ATTACH ? AS remap", (remap_db_output,))
         c.execute("BEGIN")
         for wp_table in wp_config.wp_tables:
+            wp_table_name = wp_table.name
+            wp_table_name_escaped = escape_double_quotes(wp_table_name)
+            wp_filter_column = wp_table.filter_column_name
+            wp_filter_column_escaped = escape_double_quotes(wp_filter_column)
             if isinstance(wp_value, (str, int, float)):
-                c.execute(f"""delete from "{wp_table.name}" where "{wp_table.filter_column_name}" != ?""", (wp_value,))
+                c.execute(f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} != ?""", (wp_value,))
             elif isinstance(wp_value, list):
                 values_str = ",".join(["?"] * len(wp_value))
                 c.execute(
-                    f"""delete from "{wp_table.name}" where "{wp_table.filter_column_name}" not in ({values_str})""",
+                    f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} not in ({values_str})""",
                     wp_value,
                 )
             else:

@@ -7,13 +7,15 @@ an auxiliary table that records pairs of IDs for features: master ID + work pack
 Any newly seen feature IDs in master table are assigned corresponding feature IDs
 in the work package table (and vice versa).
 """
+from wp_utils import escape_double_quotes
 
 
 def remap_table_name(table_name, wp_name):
     """ Returns name of the mapping table used for a particular table name and work package """
-    table_name = table_name.strip('"')
-    wp_name = wp_name.strip('"')
-    return f'"remap"."{table_name}_{wp_name}"'
+
+    wp_table_name = f"{table_name}_{wp_name}"
+    wp_table_name_escaped = escape_double_quotes(wp_table_name)
+    return f'"remap".{wp_table_name_escaped}'
 
 
 def _create_remap_table_if_not_exists(cursor, remap_table):
@@ -31,9 +33,8 @@ def _table_pkey(cursor, table_name):
     If the table has multi-column primary key, it raises an exception
     as this is currently not supported.
     """
-    table_name = table_name.strip('"')
     pkey_column_name = None
-    for row in cursor.execute(f"pragma table_info('{table_name}')"):
+    for row in cursor.execute(f"pragma table_info('{table_name}')"):  # It doesn't have to be escaped
         if row[5]:
             if pkey_column_name is None:
                 pkey_column_name = row[1]
@@ -54,11 +55,12 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     _create_remap_table_if_not_exists(cursor, remap_table_escaped)
 
     pkey_column = _table_pkey(cursor, table_name)
-    table_name = table_name.strip('"')
+    table_name_escaped = escape_double_quotes(table_name)
+    pkey_column_escaped = escape_double_quotes(pkey_column)
     # 1. find missing mapped ids
     master_fids_missing = set()
     sql = (
-        f"""SELECT "{pkey_column}" FROM "{table_name}" """
+        f"""SELECT {pkey_column_escaped} FROM {table_name_escaped} """
         f"""LEFT JOIN {remap_table_escaped} AS mapped ON fid = mapped.master_fid WHERE mapped.wp_fid IS NULL"""
     )
     for row in cursor.execute(sql):
@@ -79,18 +81,18 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     # 3. remap master ids to WP ids
     mapping = []
     sql = (
-        f"""SELECT "{pkey_column}", mapped.wp_fid FROM "{table_name}" """
+        f"""SELECT {pkey_column_escaped}, mapped.wp_fid FROM {table_name_escaped} """
         f"""LEFT JOIN {remap_table_escaped} AS mapped ON fid = mapped.master_fid"""
     )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
 
     # hack to hopefully avoid possible pkey violations ... who would use negative ids? :-)
-    cursor.execute(f"""UPDATE "{table_name}" SET "{pkey_column}" = -"{pkey_column}";""")
+    cursor.execute(f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = -{pkey_column_escaped};""")
 
     for master_fid, wp_fid in mapping:
         cursor.execute(
-            f"""UPDATE "{table_name}" SET "{pkey_column}" = ? WHERE "{pkey_column}" = ?""", (wp_fid, -master_fid)
+            f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE {pkey_column_escaped} = ?""", (wp_fid, -master_fid)
         )
 
 
@@ -107,11 +109,12 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     _create_remap_table_if_not_exists(cursor, remap_table)
 
     pkey_column = _table_pkey(cursor, table_name)
-    table_name = table_name.strip('"')
+    table_name_escaped = escape_double_quotes(table_name)
+    pkey_column_escaped = escape_double_quotes(pkey_column)
     # 1. find missing mapped ids
     wp_fids_missing = set()
     sql = (
-        f"""SELECT "{pkey_column}" FROM "{table_name}" """
+        f"""SELECT {pkey_column_escaped} FROM {table_name_escaped} """
         f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid WHERE mapped.master_fid IS NULL"""
     )
     for row in cursor.execute(sql):
@@ -125,14 +128,14 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     # 3. remap WP ids to master ids
     mapping = []  # list of tuples (wp_fid, master_fid)
     sql = (
-        f"""SELECT "{pkey_column}", mapped.master_fid FROM "{table_name}" """
+        f"""SELECT {pkey_column_escaped}, mapped.master_fid FROM {table_name_escaped} """
         f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid"""
     )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
 
     # hack to hopefully avoid possible pkey violations ... who would use negative ids? :-)
-    cursor.execute(f"""UPDATE "{table_name}" SET "{pkey_column}" = -"{pkey_column}";""")
+    cursor.execute(f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = -{pkey_column_escaped};""")
 
     for wp_fid, master_fid in mapping:
-        cursor.execute(f"""UPDATE "{table_name}" SET "{pkey_column}" = ? WHERE fid = ?""", (master_fid, -wp_fid))
+        cursor.execute(f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE fid = ?""", (master_fid, -wp_fid))
