@@ -11,7 +11,7 @@ from .init_test_data import (
     open_layer_and_delete_feature,
 )
 from wp import load_config_from_yaml, make_work_packages
-
+from wp_utils import escape_double_quotes
 this_dir = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -30,7 +30,9 @@ def _assert_value_equals(gpkg_filename, table_name, fid, field_name, expected_va
     does not equal the expected value"""
     db = sqlite3.connect(gpkg_filename)
     c = db.cursor()
-    c.execute(f"""SELECT "{field_name}" FROM "{table_name}" WHERE fid = ?""", (fid,))
+    field_name_escaped = escape_double_quotes(field_name)
+    table_name_escaped = escape_double_quotes(table_name)
+    c.execute(f"""SELECT {field_name_escaped} FROM {table_name_escaped} WHERE fid = ?""", (fid,))
     row = c.fetchone()
     if row is None:
         assert False, f"Missing row for fid {fid}"
@@ -41,7 +43,8 @@ def _assert_row_missing(gpkg_filename, table_name, fid):
     """ Raises assertion error if given feature is present in the table """
     db = sqlite3.connect(gpkg_filename)
     c = db.cursor()
-    c.execute(f"""SELECT count(*) FROM "{table_name}" WHERE fid = ?""", (fid,))
+    table_name_escaped = escape_double_quotes(table_name)
+    c.execute(f"""SELECT count(*) FROM {table_name_escaped} WHERE fid = ?""", (fid,))
     row = c.fetchone()
     assert row[0] == 0, f"Row for fid {fid} is present but it should not be"
 
@@ -50,7 +53,8 @@ def _assert_row_exists(gpkg_filename, table_name, fid):
     """ Raises assertion error if given feature is NOT present in the table """
     db = sqlite3.connect(gpkg_filename)
     c = db.cursor()
-    c.execute(f"""SELECT count(*) FROM "{table_name}" WHERE fid = ?""", (fid,))
+    table_name_escaped = escape_double_quotes(table_name)
+    c.execute(f"""SELECT count(*) FROM {table_name_escaped} WHERE fid = ?""", (fid,))
     row = c.fetchone()
     assert row[0] == 1, f"Row for fid {fid} is not present but it should be"
 
