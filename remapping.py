@@ -11,6 +11,8 @@ in the work package table (and vice versa).
 
 def remap_table_name(table_name, wp_name):
     """ Returns name of the mapping table used for a particular table name and work package """
+    table_name = table_name.strip('"')
+    wp_name = wp_name.strip('"')
     return f'"remap"."{table_name}_{wp_name}"'
 
 
@@ -29,6 +31,7 @@ def _table_pkey(cursor, table_name):
     If the table has multi-column primary key, it raises an exception
     as this is currently not supported.
     """
+    table_name = table_name.strip('"')
     pkey_column_name = None
     for row in cursor.execute(f"pragma table_info('{table_name}')"):
         if row[5]:
@@ -51,7 +54,7 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     _create_remap_table_if_not_exists(cursor, remap_table_escaped)
 
     pkey_column = _table_pkey(cursor, table_name)
-
+    table_name = table_name.strip('"')
     # 1. find missing mapped ids
     master_fids_missing = set()
     sql = (
@@ -104,7 +107,7 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     _create_remap_table_if_not_exists(cursor, remap_table)
 
     pkey_column = _table_pkey(cursor, table_name)
-
+    table_name = table_name.strip('"')
     # 1. find missing mapped ids
     wp_fids_missing = set()
     sql = (
