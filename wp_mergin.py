@@ -32,10 +32,10 @@ from wp import load_config_from_yaml, make_work_packages
 
 parser = argparse.ArgumentParser()
 parser.add_argument("mergin_project", nargs="?")
-parser.add_argument("--dry", action="store_true")
+parser.add_argument("--dry-run", action="store_true")
 params = parser.parse_args()
 master_mergin_project = params.mergin_project  # e.g.  martin/wp-master
-dry_run = params.dry
+dry_run = params.dry_run
 
 if not master_mergin_project:
     raise ValueError("Need a parameter with master Mergin project name")
@@ -98,11 +98,12 @@ wp_config = load_config_from_yaml(master_config_yaml)
 # Handling removed work packages
 wp_names = {f"{wp.name}.gpkg" for wp in wp_config.wp_names}
 master_wp_dir = os.path.join(master_dir, "work-packages")
-for f in os.listdir(master_wp_dir):
-    if f.endswith(".gpkg") and f != "master.gpkg" and f not in wp_names:
-        missing_wp_name = f.rstrip(".gpkg")
-        print(f"Removing '{missing_wp_name}' work package as it's not used anymore.")
-        os.remove(os.path.join(master_wp_dir, f))
+if os.path.exists(master_wp_dir):
+    for f in os.listdir(master_wp_dir):
+        if f.endswith(".gpkg") and f != "master.gpkg" and f not in wp_names:
+            missing_wp_name = f.rstrip(".gpkg")
+            print(f"Removing '{missing_wp_name}' work package as it's not used anymore.")
+            os.remove(os.path.join(master_wp_dir, f))
 
 gpkg_path = wp_config.master_gpkg
 
@@ -163,14 +164,15 @@ def push_mergin_project(mc, directory):
 for wp in wp_config.wp_names:
     wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
     wp_dir = os.path.join(tmp_dir, "wp-" + wp_name)
-
     if wp_name in wp_new:
         # we need to create new project
-        print("Creating project: " + wp_mergin + " for work package " + wp_name)
-        wp_mergin_project_namespace, wp_mergin_project_name = wp_mergin.split("/")
-        mc.create_project(wp_mergin_project_name, False, wp_mergin_project_namespace)
-        mc.download_project(wp_mergin, wp_dir)
-
+        if not dry_run:
+            print("Creating project: " + wp_mergin + " for work package " + wp_name)
+            wp_mergin_project_namespace, wp_mergin_project_name = wp_mergin.split("/")
+            mc.create_project(wp_mergin_project_name, False, wp_mergin_project_namespace)
+            mc.download_project(wp_mergin, wp_dir)
+        else:
+            os.makedirs(wp_dir, exist_ok=True)  # Make WP project folder that would be created by the Mergin Client
         shutil.copy(os.path.join(wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(wp_dir, gpkg_path))
 
         # copy other files from master project
