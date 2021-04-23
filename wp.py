@@ -284,6 +284,7 @@ def make_work_packages(data_dir, wp_config):
             wp_table_name_escaped = escape_double_quotes(wp_table_name)
             wp_filter_column = wp_table.filter_column_name
             wp_filter_column_escaped = escape_double_quotes(wp_filter_column)
+            c.execute(f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} IS NULL""")
             if isinstance(wp_value, (str, int, float)):
                 c.execute(f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} != ?""", (wp_value,))
             elif isinstance(wp_value, list):
