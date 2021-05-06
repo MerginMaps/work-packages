@@ -101,7 +101,7 @@ master_wp_dir = os.path.join(master_dir, "work-packages")
 if os.path.exists(master_wp_dir):
     for f in os.listdir(master_wp_dir):
         if f.endswith(".gpkg") and f != "master.gpkg" and f not in wp_names:
-            missing_wp_name = f.rstrip(".gpkg")
+            missing_wp_name = f[:-5]  # strip the suffix
             print(f"Removing '{missing_wp_name}' work package as it's not used anymore.")
             os.remove(os.path.join(master_wp_dir, f))
 

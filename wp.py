@@ -128,7 +128,7 @@ def make_work_packages(data_dir, wp_config):
             if filename == "master.gpkg":
                 continue  # skip the master file - it's not a work package
             if filename.endswith(".gpkg"):
-                wp_name = filename.rstrip(".gpkg")
+                wp_name = filename[:-5]  # strip the suffix
                 old_wp_names.append(wp_name)
     print("existing WPs: " + str(old_wp_names))
 
