@@ -48,10 +48,14 @@ mergin_password = os.getenv("MERGIN_PASSWORD")
 if mergin_password is None:
     mergin_password = getpass.getpass(f"Password for {mergin_user}: ")
 
+mergin_url = os.getenv("MERGIN_URL")
+if mergin_url is None:
+    mergin_url = mergin.MerginClient.default_url();
+
 # this will create a directory with a random name, e.g. /tmp/mergin-work-packages-w7tbsyd7
 tmp_dir = tempfile.mkdtemp(prefix="mergin-work-packages-")
 
-mc = mergin.MerginClient(login=mergin_user, password=mergin_password)
+mc = mergin.MerginClient(url=mergin_url, login=mergin_user, password=mergin_password)
 
 wp_alg_dir = os.path.join(tmp_dir, "wp")  # where we expect "base", "input" subdirs
 wp_alg_base_dir = os.path.join(wp_alg_dir, "base")
