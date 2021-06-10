@@ -50,7 +50,7 @@ if mergin_password is None:
 
 mergin_url = os.getenv("MERGIN_URL")
 if mergin_url is None:
-    mergin_url = mergin.MerginClient.default_url();
+    mergin_url = mergin.MerginClient.default_url()
 
 # this will create a directory with a random name, e.g. /tmp/mergin-work-packages-w7tbsyd7
 tmp_dir = tempfile.mkdtemp(prefix="mergin-work-packages-")
