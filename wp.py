@@ -132,8 +132,13 @@ def make_work_packages(data_dir, wp_config):
                 old_wp_names.append(wp_name)
     print("existing WPs: " + str(old_wp_names))
 
+    def _logger_callback(level, text_bytes):
+        text = text_bytes.decode()  # convert bytes to str
+        print("GEODIFF: ", text)
+
     geodiff = pygeodiff.GeoDiff()
     geodiff.set_maximum_logger_level(geodiff.LevelDebug)
+    geodiff.set_logger_callback(_logger_callback)
 
     master_gpkg_base = os.path.join(base_dir, "master.gpkg")  # should not have been modified
     master_gpkg_input = os.path.join(input_dir, "master.gpkg")  # this could have been modified by users
@@ -198,7 +203,7 @@ def make_work_packages(data_dir, wp_config):
             db = sqlite3.connect(x)
             db.enable_load_extension(True)  # for spatialite
             c = db.cursor()
-            c.execute('SELECT load_extension("mod_spatialite");')  # TODO: how to deal with it?
+            c.execute("SELECT load_extension('mod_spatialite');")  # TODO: how to deal with it?
             c.execute("ATTACH ? AS remap", (remap_db_output,))
             c.execute("BEGIN")
             for wp_table in wp_config.wp_tables:
@@ -276,7 +281,7 @@ def make_work_packages(data_dir, wp_config):
         db = sqlite3.connect(os.path.join(output_dir, wp_name + ".gpkg"))
         db.enable_load_extension(True)  # for spatialite
         c = db.cursor()
-        c.execute('SELECT load_extension("mod_spatialite");')  # TODO: how to deal with it?
+        c.execute("SELECT load_extension('mod_spatialite');")  # TODO: how to deal with it?
         c.execute("ATTACH ? AS remap", (remap_db_output,))
         c.execute("BEGIN")
         for wp_table in wp_config.wp_tables:
