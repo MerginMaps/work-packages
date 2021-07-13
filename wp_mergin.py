@@ -213,6 +213,7 @@ for wp in wp_config.wp_names:
     shutil.copy(
         os.path.join(wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(master_dir, "work-packages", wp_name + ".gpkg")
     )
+shutil.rmtree(tmp_dir)
 
 if dry_run:
     print(f"This is a dry run - no changes pushed into the master project: {master_mergin_project}")
