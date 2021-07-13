@@ -222,4 +222,5 @@ else:
         print("Uploaded a new version: " + mergin.MerginProject(master_dir).metadata["version"])
     else:
         print("No changes (not creating a new version).")
+shutil.rmtree(tmp_dir)
 print("Done.")
