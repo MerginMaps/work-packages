@@ -11,7 +11,7 @@ from wp_utils import escape_double_quotes
 
 
 def remap_table_name(table_name, wp_name):
-    """ Returns name of the mapping table used for a particular table name and work package """
+    """Returns name of the mapping table used for a particular table name and work package"""
 
     wp_table_name = f"{table_name}_{wp_name}"
     wp_table_name_escaped = escape_double_quotes(wp_table_name)
@@ -19,7 +19,7 @@ def remap_table_name(table_name, wp_name):
 
 
 def _create_remap_table_if_not_exists(cursor, remap_table):
-    """ Creates mapping table with the expected structure if we don't have it yet """
+    """Creates mapping table with the expected structure if we don't have it yet"""
     create_sql = f"""
         CREATE TABLE IF NOT EXISTS {remap_table} (
             master_fid INTEGER PRIMARY KEY, wp_fid INTEGER UNIQUE);
@@ -92,7 +92,8 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
 
     for master_fid, wp_fid in mapping:
         cursor.execute(
-            f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE {pkey_column_escaped} = ?""", (wp_fid, -master_fid)
+            f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE {pkey_column_escaped} = ?""",
+            (wp_fid, -master_fid),
         )
 
 
@@ -138,4 +139,6 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     cursor.execute(f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = -{pkey_column_escaped};""")
 
     for wp_fid, master_fid in mapping:
-        cursor.execute(f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE fid = ?""", (master_fid, -wp_fid))
+        cursor.execute(
+            f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE fid = ?""", (master_fid, -wp_fid)
+        )

@@ -1,4 +1,4 @@
-file: farm_data.gpkg
+file: farms.gpkg
 
 work-packages:
   - name: Kyle

@@ -41,7 +41,7 @@ def create_layer(gpkg_ds, layer_name, ogr_geom_type, crs_epsg_code, fields):
 
 
 def open_layer(gpkg_ds, layer_name):
-    """ Returns layer object given open GPKG connection and layer name """
+    """Returns layer object given open GPKG connection and layer name"""
     return gpkg_ds.GetLayer(layer_name)
 
 
@@ -65,12 +65,12 @@ def create_feature(lyr, geom_wkt, field_values, fid=-1):
 
 
 def delete_feature(layer, fid):
-    """ Deletes a feature given by its ID """
+    """Deletes a feature given by its ID"""
     layer.DeleteFeature(fid)  # feat.GetFID()
 
 
 def update_feature(layer, fid, field_values):
-    """ Updates attributes of the feature given by its ID """
+    """Updates attributes of the feature given by its ID"""
     feat = layer.GetFeature(fid)
     assert feat is not None, f"Unable to find feature fid={fid}"
     for field_name, field_value in field_values.items():

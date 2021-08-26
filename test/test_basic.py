@@ -12,11 +12,12 @@ from .init_test_data import (
 )
 from wp import load_config_from_yaml, make_work_packages
 from wp_utils import escape_double_quotes
+
 this_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 def _assert_row_counts(gpkg_filename, expected_farms, expected_trees):
-    """ Raises assertion errors if tables do not have the right number of rows """
+    """Raises assertion errors if tables do not have the right number of rows"""
     db = sqlite3.connect(gpkg_filename)
     c = db.cursor()
     c.execute("SELECT COUNT(*) FROM farms")
@@ -40,7 +41,7 @@ def _assert_value_equals(gpkg_filename, table_name, fid, field_name, expected_va
 
 
 def _assert_row_missing(gpkg_filename, table_name, fid):
-    """ Raises assertion error if given feature is present in the table """
+    """Raises assertion error if given feature is present in the table"""
     db = sqlite3.connect(gpkg_filename)
     c = db.cursor()
     table_name_escaped = escape_double_quotes(table_name)
@@ -50,7 +51,7 @@ def _assert_row_missing(gpkg_filename, table_name, fid):
 
 
 def _assert_row_exists(gpkg_filename, table_name, fid):
-    """ Raises assertion error if given feature is NOT present in the table """
+    """Raises assertion error if given feature is NOT present in the table"""
     db = sqlite3.connect(gpkg_filename)
     c = db.cursor()
     table_name_escaped = escape_double_quotes(table_name)
@@ -104,7 +105,7 @@ def _keep_tmp_dir(tmp_dir, new_dir):
 
 
 def test_farm_data():
-    """ Check whether the test data init function returns what we expect """
+    """Check whether the test data init function returns what we expect"""
     tmp_dir_obj = TemporaryDirectory(prefix="test-mergin-work-packages-")
     farm_gpkg = os.path.join(tmp_dir_obj.name, "farm.gpkg")
     create_farm_dataset(farm_gpkg)
@@ -113,7 +114,7 @@ def test_farm_data():
 
 
 def test_first_run():
-    """ Checks whether the first run correctly generates work package data """
+    """Checks whether the first run correctly generates work package data"""
     tmp_dir = _make_initial_farm_work_packages(os.path.join(this_dir, "config-farm-basic.yml"))
 
     # run checks
@@ -129,7 +130,7 @@ def test_first_run():
 
 
 def test_update_row_wp():
-    """ One row has been updated in WP, no changes in master """
+    """One row has been updated in WP, no changes in master"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
@@ -154,7 +155,7 @@ def test_update_row_wp():
 
 
 def test_update_row_master():
-    """ One row has been updated in master, no changes in WP """
+    """One row has been updated in master, no changes in WP"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
@@ -177,7 +178,7 @@ def test_update_row_master():
 
 
 def test_update_row_master_and_wp():
-    """ One row updated in master, another row in WP (no conflict) """
+    """One row updated in master, another row in WP (no conflict)"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
@@ -206,7 +207,7 @@ def test_update_row_master_and_wp():
 
 
 def test_delete_row_wp():
-    """ One row deleted in WP, no changes in master """
+    """One row deleted in WP, no changes in master"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
@@ -227,7 +228,7 @@ def test_delete_row_wp():
 
 
 def test_delete_row_master():
-    """ One row deleted in master, no changes in WP """
+    """One row deleted in master, no changes in WP"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
@@ -248,7 +249,7 @@ def test_delete_row_master():
 
 
 def test_insert_row_wp():
-    """ One row has been added in WP, no changes in master """
+    """One row has been added in WP, no changes in master"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
@@ -271,7 +272,7 @@ def test_insert_row_wp():
 
 
 def test_insert_row_master():
-    """ One row has inserted in master, no changes in WP """
+    """One row has inserted in master, no changes in WP"""
     config_file = os.path.join(this_dir, "config-farm-basic.yml")
     tmp_dir_1 = _make_initial_farm_work_packages(config_file)
     tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)

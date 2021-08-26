@@ -69,7 +69,7 @@ master_config_yaml = os.path.join(master_dir, "mergin-work-packages.yml")
 
 
 def get_master_project_files(directory):
-    """ Returns list of relative file names from the master project that should be copied to the new WP projects """
+    """Returns list of relative file names from the master project that should be copied to the new WP projects"""
     mergin_internal_dir = os.path.join(directory, ".mergin")
     config_file = os.path.join(directory, "mergin-work-packages.yml")
     wp_dir = os.path.join(directory, "work-packages")
