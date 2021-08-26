@@ -107,7 +107,7 @@ def _keep_tmp_dir(tmp_dir, new_dir):
 def test_farm_data():
     """Check whether the test data init function returns what we expect"""
     tmp_dir_obj = TemporaryDirectory(prefix="test-mergin-work-packages-")
-    farm_gpkg = os.path.join(tmp_dir_obj.name, "farm.gpkg")
+    farm_gpkg = os.path.join(tmp_dir_obj.name, "farms.gpkg")
     create_farm_dataset(farm_gpkg)
 
     _assert_row_counts(farm_gpkg, expected_farms=4, expected_trees=9)
