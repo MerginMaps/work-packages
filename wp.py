@@ -36,19 +36,23 @@ from remapping import remap_table_master_to_wp, remap_table_wp_to_master
 
 
 class WPTable(object):
-    """ Describes how to handle a table in work packages """
+    """Describes how to handle a table in work packages"""
 
-    def __init__(self, name, filter_column_name):
+    FILTER_METHOD_COLUMN = "filter-column"
+    FILTER_METHOD_GEOMETRY = "filter-geometry"
+
+    def __init__(self, name, filter_method, filter_column_name=None):
         """
         :param name: Name of the database table
         :param filter_column_name: Name of the column used for filtering
         """
         self.name = name
+        self.filter_method = filter_method
         self.filter_column_name = filter_column_name
 
 
 class WPName(object):
-    """ Describes configuration of a single work package """
+    """Describes configuration of a single work package"""
 
     def __init__(self, name, value, mergin_project):
         """
@@ -62,7 +66,7 @@ class WPName(object):
 
 
 class WPConfig(object):
-    """ Full configuration of the work packaging algorithm """
+    """Full configuration of the work packaging algorithm"""
 
     def __init__(self, master_gpkg, wp_names, wp_tables):
         """
@@ -90,7 +94,7 @@ def load_config_from_yaml(config_yaml):
         for name_yaml in root_yaml["work-packages"]:
             wp_names.append(WPName(name_yaml["name"], name_yaml["value"], name_yaml["mergin-project"]))
         for table_yaml in root_yaml["tables"]:
-            wp_tables.append(WPTable(table_yaml["name"], table_yaml["filter-column-name"]))
+            wp_tables.append(WPTable(table_yaml["name"], table_yaml["method"], table_yaml.get("filter-column-name")))
 
         return WPConfig(master_gpkg, wp_names, wp_tables)
 
@@ -176,8 +180,8 @@ def make_work_packages(data_dir, wp_config):
         new_master_fids = {}
         for wp_table in wp_config.wp_tables:
             wp_table_name = wp_table.name
-            wp_table_name_escaped = escape_double_quotes(wp_table_name)
-            c.execute(f"""SELECT max(fid) FROM {wp_table_name_escaped};""")
+            wp_tab_name_esc = escape_double_quotes(wp_table_name)
+            c.execute(f"""SELECT max(fid) FROM {wp_tab_name_esc};""")
             new_master_fid = c.fetchone()[0]
             if new_master_fid is None:
                 new_master_fid = 1  # empty table so far
@@ -286,21 +290,29 @@ def make_work_packages(data_dir, wp_config):
         c.execute("BEGIN")
         for wp_table in wp_config.wp_tables:
             wp_table_name = wp_table.name
-            wp_table_name_escaped = escape_double_quotes(wp_table_name)
-            wp_filter_column = wp_table.filter_column_name
-            wp_filter_column_escaped = escape_double_quotes(wp_filter_column)
-            c.execute(f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} IS NULL""")
-            if isinstance(wp_value, (str, int, float)):
-                c.execute(f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} != ?""", (wp_value,))
-            elif isinstance(wp_value, list):
-                values_str = ",".join(["?"] * len(wp_value))
+            wp_filter_method = wp_table.filter_method
+            wp_tab_name_esc = escape_double_quotes(wp_table_name)
+            if wp_filter_method == WPTable.FILTER_METHOD_GEOMETRY:
+                intersects_query = f"ST_Intersects(GeomFromGPB(geometry), ST_GeomFromText('{wp_value}'))"
                 c.execute(
-                    f"""delete from {wp_table_name_escaped} where {wp_filter_column_escaped} not in ({values_str})""",
-                    wp_value,
-                )
+                    f"""delete from {wp_tab_name_esc} where not {intersects_query}""")
             else:
-                # we may want to support some custom SQL at some point too
-                raise ValueError("what?")
+                wp_filter_column = wp_table.filter_column_name
+                wp_filter_column_escaped = escape_double_quotes(wp_filter_column)
+                c.execute(f"""delete from {wp_tab_name_esc} where {wp_filter_column_escaped} IS NULL""")
+                if isinstance(wp_value, (str, int, float)):
+                    c.execute(
+                        f"""delete from {wp_tab_name_esc} where {wp_filter_column_escaped} != ?""", (wp_value,)
+                    )
+                elif isinstance(wp_value, list):
+                    values_str = ",".join(["?"] * len(wp_value))
+                    c.execute(
+                        f"""delete from {wp_tab_name_esc} where {wp_filter_column_escaped} not in ({values_str})""",
+                        wp_value,
+                    )
+                else:
+                    # we may want to support some custom SQL at some point too
+                    raise ValueError("what?")
             remap_table_master_to_wp(c, wp_table.name, wp_name)
         # TODO: drop tables that are not listed at all (?)
         c.execute("COMMIT")
