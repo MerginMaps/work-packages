@@ -73,7 +73,7 @@ def _make_initial_farm_work_packages(config_file):
     # get data
     create_farm_dataset(os.path.join(tmp_dir, "input", "master.gpkg"))
     # get config
-    wp_config = load_config_from_yaml(os.path.join(this_dir, "config-farm-basic.yml"))
+    wp_config = load_config_from_yaml(config_file)
     # run alg
     make_work_packages(tmp_dir, wp_config)
     return tmp_dir_obj
@@ -114,7 +114,7 @@ def test_farm_data():
 
 
 def test_first_run():
-    """Checks whether the first run correctly generates work package data"""
+    """Checks whether the first run correctly generates work package data with 'filter-column' method"""
     tmp_dir = _make_initial_farm_work_packages(os.path.join(this_dir, "config-farm-basic.yml"))
 
     # run checks
@@ -127,6 +127,22 @@ def test_first_run():
     _assert_row_counts(os.path.join(output_dir, "master.gpkg"), expected_farms=4, expected_trees=9)
     _assert_row_counts(os.path.join(output_dir, "Kyle.gpkg"), expected_farms=1, expected_trees=2)
     _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=2, expected_trees=6)
+
+
+def test_first_run_filtering_geom():
+    """Checks whether the first run correctly generates work package data with 'filter-geometry' method"""
+    tmp_dir = _make_initial_farm_work_packages(os.path.join(this_dir, "config-farm-geom.yml"))
+
+    # run checks
+    output_dir = os.path.join(tmp_dir.name, "output")
+    output_files = os.listdir(output_dir)
+    assert "Emma.gpkg" in output_files
+    assert "Kyle.gpkg" in output_files
+    assert "master.gpkg" in output_files
+
+    _assert_row_counts(os.path.join(output_dir, "master.gpkg"), expected_farms=4, expected_trees=9)
+    _assert_row_counts(os.path.join(output_dir, "Kyle.gpkg"), expected_farms=2, expected_trees=3)
+    _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=3, expected_trees=1)
 
 
 def test_update_row_wp():
