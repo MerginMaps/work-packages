@@ -3,7 +3,7 @@ Combined split/merge algorithm that:
 1. Brings any changes from work packages to the master database
 2. Regenerates work packages based on the master database
 """
-
+import json
 import sqlite3
 import os
 import shutil
@@ -216,26 +216,24 @@ def make_work_packages(data_dir, wp_config):
 
         wp_changeset_base_input = os.path.join(tmp_dir, wp_name + "-base-input.diff")
         wp_changeset_base_input_json = os.path.join(tmp_dir, wp_name + "-base-input.json")
-        wp_changeset_conflicts = os.path.join(tmp_dir, wp_name + "-conflicts.json")
+
+        wp_changeset_base_output = os.path.join(tmp_dir, wp_name + "-base-output.diff")
+        wp_changeset_base_output_json = os.path.join(tmp_dir, wp_name + "-base-output.json")
+
+        wp_rebased_changeset = os.path.join(tmp_dir, wp_name + "-rebased.diff")
+        wp_rebased_changeset_json = os.path.join(tmp_dir, wp_name + "-rebased.json")
+
+        wp_rebased_changeset_conflicts = os.path.join(tmp_dir, wp_name + "-rebased-conflicts.json")
 
         # create changeset using pygeodiff using wp_gpkg_base + wp_gpkg_input
         # print("--- create changeset")
         geodiff.create_changeset(wp_gpkg_base, wp_gpkg_input, wp_changeset_base_input)
-
+        geodiff.create_changeset(wp_gpkg_base, master_gpkg_output, wp_changeset_base_output)
         # summarize changes that have happened in master (base master VS input master)
         # (this is not needed anywhere in the code, but may be useful for debugging)
         geodiff.list_changes(wp_changeset_base_input, wp_changeset_base_input_json)
-
-        # TODO: the following code (copy DB + rebase + copy DB) is a bit stupid...
-        # we should use GEODIFF_createRebasedChangesetEx and then just apply rebased changeset
-        # but this function is not (yet) available in pygeodiff
-
-        # create tmp_master_with_wp
-        # print("--- copy + apply changeset")
-        tmp_master_with_wp = os.path.join(tmp_dir, "master-" + wp_name + ".gpkg")
-        shutil.copy(master_gpkg_base, tmp_master_with_wp)
-        geodiff.apply_changeset(tmp_master_with_wp, wp_changeset_base_input)
-
+        geodiff.list_changes(wp_changeset_base_output, wp_changeset_base_output_json)
+        # Create rebased changeset
         # rebase changeset - to resolve conflicts, for example:
         # - WP1 deleted a row that WP2 also wants to delete
         # - WP1 updated a row that WP2 also updated
@@ -243,13 +241,19 @@ def make_work_packages(data_dir, wp_config):
         # - WP1 deleted a row that WP2 updated
         # - WP1 inserted a row with FID that WP2 also wants to insert -- this should not happen
         #   because remapping should assign unique master FIDs
-        # print("--- rebase")
-        geodiff.rebase(master_gpkg_base, master_gpkg_output, tmp_master_with_wp, wp_changeset_conflicts)
-
-        # the tmp_master_with_wp now contains stuff from output master and WP changes on top of that
-        # let's overwrite the output master with this addition :-O
-        # print("--- copy 2")
-        shutil.copy(tmp_master_with_wp, master_gpkg_output)
+        geodiff.create_rebased_changeset_ex(
+            "sqlite",
+            "",
+            master_gpkg_base,
+            wp_changeset_base_input,
+            wp_changeset_base_output,
+            wp_rebased_changeset,
+            wp_rebased_changeset_conflicts)
+        try:
+            geodiff.list_changes(wp_rebased_changeset, wp_rebased_changeset_json)
+        except pygeodiff.GeoDiffLibError:
+            continue
+        geodiff.apply_changeset(master_gpkg_output, wp_rebased_changeset)
 
     # summarize changes that have happened in WPs (input master VS output master)
     # (this is not needed anywhere in the code, but may be useful for debugging)
