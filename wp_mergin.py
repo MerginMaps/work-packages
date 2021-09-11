@@ -27,14 +27,16 @@ import os
 import shutil
 import tempfile
 import argparse
-
+from wp_utils import download_project_with_cache
 from wp import load_config_from_yaml, make_work_packages
 
 parser = argparse.ArgumentParser()
 parser.add_argument("mergin_project", nargs="?")
+parser.add_argument("--cache-dir", nargs="?")
 parser.add_argument("--dry-run", action="store_true")
 params = parser.parse_args()
 master_mergin_project = params.mergin_project  # e.g.  martin/wp-master
+cache_dir = params.cache_dir
 dry_run = params.dry_run
 
 if not master_mergin_project:
@@ -93,7 +95,7 @@ def get_master_project_files(directory):
 
 
 print("Downloading master project " + master_mergin_project + "...")
-mc.download_project(master_mergin_project, master_dir)
+download_project_with_cache(mc, master_mergin_project, master_dir, cache_dir)
 print("Done.")
 
 print("Reading configuration from " + master_config_yaml)
@@ -137,7 +139,7 @@ for wp in wp_config.wp_names:
         shutil.copy(wp_base_file, os.path.join(wp_alg_base_dir, wp_name + ".gpkg"))
 
         print("Downloading work package project " + wp_mergin + "...")
-        mc.download_project(wp_mergin, wp_dir)
+        download_project_with_cache(mc, wp_mergin, wp_dir, cache_dir)
         print("Done.")
 
         shutil.copy(os.path.join(wp_dir, gpkg_path), os.path.join(wp_alg_input_dir, wp_name + ".gpkg"))
@@ -174,7 +176,7 @@ for wp in wp_config.wp_names:
             print("Creating project: " + wp_mergin + " for work package " + wp_name)
             wp_mergin_project_namespace, wp_mergin_project_name = wp_mergin.split("/")
             mc.create_project(wp_mergin_project_name, False, wp_mergin_project_namespace)
-            mc.download_project(wp_mergin, wp_dir)
+            download_project_with_cache(mc, wp_mergin, wp_dir, cache_dir)
         else:
             os.makedirs(wp_dir, exist_ok=True)  # Make WP project folder that would be created by the Mergin Client
         shutil.copy(os.path.join(wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(wp_dir, gpkg_path))
