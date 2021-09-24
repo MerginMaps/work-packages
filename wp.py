@@ -3,7 +3,6 @@ Combined split/merge algorithm that:
 1. Brings any changes from work packages to the master database
 2. Regenerates work packages based on the master database
 """
-import json
 import sqlite3
 import os
 import shutil
@@ -245,9 +244,9 @@ def make_work_packages(data_dir, wp_config):
             wp_changeset_base_output,
             wp_rebased_changeset,
             wp_rebased_changeset_conflicts)
-        try:
+        if os.path.isfile(wp_rebased_changeset):
             geodiff.list_changes(wp_rebased_changeset, wp_rebased_changeset_json)
-        except pygeodiff.GeoDiffLibError:
+        else:
             continue
         geodiff.apply_changeset(master_gpkg_output, wp_rebased_changeset)
 
