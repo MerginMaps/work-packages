@@ -61,7 +61,7 @@ The `survey_team` column determines which team is responsible for the survey.
 
 To configure the tool, we will create a YAML configuration file named `mergin-work-packages.yml`
 and placed in the root folder of Mergin project. Here is how it can look like:
-
+- YAML for `filter-column` filtering method
 ```yaml
 file: survey.gpkg
 
@@ -78,14 +78,33 @@ work-packages:
     value: B
     mergin-project: My Company/Survey Team B
 ```
+- YAML for `filter-geometry` filtering method
+```yaml
+file: survey.gpkg
+
+tables:
+  - name: farms
+    method: filter-geometry
+
+work-packages:
+  - name: TeamA
+    value: Polygon ((5.35 19.61, 5.44 15.28, 19.40 15.16, 19.14 18.94, 5.35 19.61))
+    mergin-project: My Company/Survey Team A
+  - name: TeamB
+    value: Polygon ((18.50 19.11, 15.28 7.46, 8.07 9.80, 18.50 19.11))
+    mergin-project: My Company/Survey Team B
+```
 
 Next to the path to the GeoPackage (`file`), there are the following bits of configuration:
 
 - `tables` list - defines which tables will be filtered and based on which column.
   Each item has to define name of the filtered table (`name`) and filtering method
-  (`method`). Currently `filter-column` is the only supported method, where values
-  from the given column are used to determine whether the row belongs to a particular
-  work package or not - this is set with `filter-column-name`.
+  (`method`). Currently, there are 2 filtering methods available.
+  - `filter-column` method, where values from the given column are used to determine whether the row belongs to a
+  particular work package or not - this is set with `filter-column-name`.
+  - `filter-geometry` method, where polygon geometries written in WKT (Well Known Text) format are used as a work
+  packages boundaries. Feature geometries that intersects with those boundaries will be qualified as belonging to the
+  work package.
 
 - `work-packages` list - defines dependent "work package" projects:
   what is the internally used name of each work package (`name`), what is the expected
