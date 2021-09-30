@@ -19,6 +19,8 @@ With the two-way synchronization provided by this tool:
 - changes in the main project are propagated to the work package projects
 - changes in the work package projects are propagated back to the main project
 
+<div><img align="left" width="45" height="45" src="https://raw.githubusercontent.com/MerginMaps/docs/main/src/.vuepress/public/slack.svg"><a href="https://merginmaps.com/community/join">Join our community chat</a><br/>and ask questions!</div>
+
 ## Quick start
 
 If you would like to start with a simple pre-configured project:
