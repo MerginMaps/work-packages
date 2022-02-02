@@ -77,7 +77,7 @@ class WPConfig(object):
         self.wp_tables = wp_tables
 
 
-def load_config_from_yaml(config_yaml):
+def load_config_from_yaml(config_yaml: str) -> WPConfig:
     """
     Reads configuration of work packages from YAML config file.
     Returns WPConfig instance or raises an exception if there was a parsing error.
@@ -98,7 +98,7 @@ def load_config_from_yaml(config_yaml):
         return WPConfig(master_gpkg, wp_names, wp_tables)
 
 
-def make_work_packages(data_dir, wp_config):
+def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
     """
     This is the core part of the algorithm for merging and splitting data for work packages.
     It expects a data directory with layout of directories and files as described in the header
@@ -140,7 +140,10 @@ def make_work_packages(data_dir, wp_config):
         print("GEODIFF: ", text)
 
     geodiff = pygeodiff.GeoDiff()
-    geodiff.set_maximum_logger_level(geodiff.LevelDebug)
+
+    # set up logging to get extra info from geodiff.
+    # geodiff.LevelDebug may be useful for debugging but it's too much info in most cases
+    geodiff.set_maximum_logger_level(geodiff.LevelInfo)
     geodiff.set_logger_callback(_logger_callback)
 
     master_gpkg_base = os.path.join(base_dir, "master.gpkg")  # should not have been modified
@@ -212,6 +215,7 @@ def make_work_packages(data_dir, wp_config):
             for wp_table in wp_config.wp_tables:
                 remap_table_wp_to_master(c, wp_table.name, wp_name, new_master_fids[wp_table.name])
             c.execute("COMMIT")
+            db.close()
 
         wp_changeset_base_input = os.path.join(tmp_dir, wp_name + "-base-input.diff")
         wp_changeset_base_input_json = os.path.join(tmp_dir, wp_name + "-base-input.json")
@@ -285,7 +289,7 @@ def make_work_packages(data_dir, wp_config):
 
         # filter out data that does not belong to the WP
         # and remap fids in the DB from master to WP-local fids
-        db = sqlite3.connect(os.path.join(output_dir, wp_name + ".gpkg"))
+        db = sqlite3.connect(wp_gpkg_output)
         db.enable_load_extension(True)  # for spatialite
         c = db.cursor()
         c.execute("SELECT load_extension('mod_spatialite');")  # TODO: how to deal with it?
@@ -322,6 +326,10 @@ def make_work_packages(data_dir, wp_config):
 
         # run VACUUM to purge anything that does not belong to the WP data
         c.execute("VACUUM")
+
+        # explicitly close the connection to avoid possible
+        # "recovered N frames from WAL file" warnings from geodiff (due to two different sqlite3 libs)
+        db.close()
 
         # get changeset between the one received from WP and newly created GPKG
         if os.path.exists(wp_gpkg_input):
