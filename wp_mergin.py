@@ -69,11 +69,11 @@ def initialize(ctx: MerginWPContext):
     """ Parse command line attributes + env vars and prepare context object """
 
     if not ctx.master_mergin_project:
-        raise ValueError("Need a parameter with master Mergin project name")
+        raise ValueError("Need a parameter with master Mergin Maps project name")
 
     mergin_user = os.getenv("MERGIN_USERNAME")
     if mergin_user is None:
-        mergin_user = input("Mergin username: ")
+        mergin_user = input("Mergin Maps username: ")
 
     mergin_password = os.getenv("MERGIN_PASSWORD")
     if mergin_password is None:
@@ -195,7 +195,7 @@ def push_mergin_project(mc, directory):
 
 
 def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, master_project_files):
-    """ Push data to all Mergin projects """
+    """ Push data to all Mergin Maps projects """
 
     for wp in wp_config.wp_names:
         wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
