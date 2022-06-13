@@ -27,6 +27,7 @@ import os
 import shutil
 import tempfile
 import argparse
+from version import __version__
 from wp_utils import download_project_with_cache
 from wp import load_config_from_yaml, make_work_packages, WPConfig
 
@@ -86,7 +87,7 @@ def initialize(ctx: MerginWPContext):
     # this will create a directory with a random name, e.g. /tmp/mergin-work-packages-w7tbsyd7
     ctx.tmp_dir = tempfile.mkdtemp(prefix="mergin-work-packages-")
 
-    ctx.mc = mergin.MerginClient(url=mergin_url, login=mergin_user, password=mergin_password)
+    ctx.mc = mergin.MerginClient(url=mergin_url, login=mergin_user, password=mergin_password, plugin_version=f"work-packages/{__version__}")
 
     ctx.wp_alg_dir = os.path.join(ctx.tmp_dir, "wp")  # where we expect "base", "input" subdirs
     ctx.wp_alg_base_dir = os.path.join(ctx.wp_alg_dir, "base")
