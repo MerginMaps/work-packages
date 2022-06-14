@@ -33,7 +33,8 @@ from wp import load_config_from_yaml, make_work_packages, WPConfig
 
 
 class MerginWPContext:
-    """ Keeps the context of the current run of the tool """
+    """Keeps the context of the current run of the tool"""
+
     def __init__(self):
         self.dry_run = None
         self.mc = None
@@ -51,7 +52,7 @@ class MerginWPContext:
 
 
 def parse_args() -> MerginWPContext:
-    """ Create context object from parsed command line arguments """
+    """Create context object from parsed command line arguments"""
     ctx = MerginWPContext()
 
     parser = argparse.ArgumentParser()
@@ -67,7 +68,7 @@ def parse_args() -> MerginWPContext:
 
 
 def initialize(ctx: MerginWPContext):
-    """ Parse command line attributes + env vars and prepare context object """
+    """Parse command line attributes + env vars and prepare context object"""
 
     if not ctx.master_mergin_project:
         raise ValueError("Need a parameter with master Mergin Maps project name")
@@ -87,7 +88,9 @@ def initialize(ctx: MerginWPContext):
     # this will create a directory with a random name, e.g. /tmp/mergin-work-packages-w7tbsyd7
     ctx.tmp_dir = tempfile.mkdtemp(prefix="mergin-work-packages-")
 
-    ctx.mc = mergin.MerginClient(url=mergin_url, login=mergin_user, password=mergin_password, plugin_version=f"work-packages/{__version__}")
+    ctx.mc = mergin.MerginClient(
+        url=mergin_url, login=mergin_user, password=mergin_password, plugin_version=f"work-packages/{__version__}"
+    )
 
     ctx.wp_alg_dir = os.path.join(ctx.tmp_dir, "wp")  # where we expect "base", "input" subdirs
     ctx.wp_alg_base_dir = os.path.join(ctx.wp_alg_dir, "base")
@@ -112,7 +115,7 @@ def get_master_project_files(directory):
             continue
         if not os.path.isfile(filename):
             continue
-        filename_relative = filename[len(directory) + 1:]  # remove prefix
+        filename_relative = filename[len(directory) + 1 :]  # remove prefix
         if len(filename_relative):
             files.append(filename_relative)
     return files
@@ -151,11 +154,14 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
 
     # the master.gpkg and remap.db should exist if this is not the first run of the tool
     if os.path.exists(os.path.join(ctx.master_dir, "work-packages", "master.gpkg")):
-        shutil.copy(os.path.join(ctx.master_dir, "work-packages", "master.gpkg"),
-                    os.path.join(ctx.wp_alg_base_dir, "master.gpkg"))
+        shutil.copy(
+            os.path.join(ctx.master_dir, "work-packages", "master.gpkg"),
+            os.path.join(ctx.wp_alg_base_dir, "master.gpkg"),
+        )
     if os.path.exists(os.path.join(ctx.master_dir, "work-packages", "remap.db")):
-        shutil.copy(os.path.join(ctx.master_dir, "work-packages", "remap.db"),
-                    os.path.join(ctx.wp_alg_base_dir, "remap.db"))
+        shutil.copy(
+            os.path.join(ctx.master_dir, "work-packages", "remap.db"), os.path.join(ctx.wp_alg_base_dir, "remap.db")
+        )
 
     master_project_files = get_master_project_files(ctx.master_dir)
     assert gpkg_path in master_project_files
@@ -196,7 +202,7 @@ def push_mergin_project(mc, directory):
 
 
 def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, master_project_files):
-    """ Push data to all Mergin Maps projects """
+    """Push data to all Mergin Maps projects"""
 
     for wp in wp_config.wp_names:
         wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
@@ -237,15 +243,17 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
     shutil.copy(os.path.join(ctx.wp_alg_output_dir, "master.gpkg"), os.path.join(ctx.master_dir, gpkg_path))
     if not os.path.exists(os.path.join(ctx.master_dir, "work-packages")):
         os.makedirs(os.path.join(ctx.master_dir, "work-packages"))
-    shutil.copy(os.path.join(ctx.wp_alg_output_dir, "master.gpkg"),
-                os.path.join(ctx.master_dir, "work-packages", "master.gpkg"))
-    shutil.copy(os.path.join(ctx.wp_alg_output_dir, "remap.db"),
-                os.path.join(ctx.master_dir, "work-packages", "remap.db"))
+    shutil.copy(
+        os.path.join(ctx.wp_alg_output_dir, "master.gpkg"), os.path.join(ctx.master_dir, "work-packages", "master.gpkg")
+    )
+    shutil.copy(
+        os.path.join(ctx.wp_alg_output_dir, "remap.db"), os.path.join(ctx.master_dir, "work-packages", "remap.db")
+    )
     for wp in wp_config.wp_names:
         wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
         shutil.copy(
             os.path.join(ctx.wp_alg_output_dir, wp_name + ".gpkg"),
-            os.path.join(ctx.master_dir, "work-packages", wp_name + ".gpkg")
+            os.path.join(ctx.master_dir, "work-packages", wp_name + ".gpkg"),
         )
 
     if ctx.dry_run:
@@ -268,7 +276,7 @@ def run_wp_mergin_with_context(ctx: MerginWPContext):
 
 
 def run_wp_mergin(mergin_project, cache_dir=None, dry_run=False):
-    """ This function can be used to run work packaging from other Python scripts """
+    """This function can be used to run work packaging from other Python scripts"""
     ctx = MerginWPContext()
     ctx.master_mergin_project = mergin_project
     ctx.cache_dir = cache_dir
@@ -276,5 +284,5 @@ def run_wp_mergin(mergin_project, cache_dir=None, dry_run=False):
     run_wp_mergin_with_context(ctx)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_wp_mergin_with_context(parse_args())

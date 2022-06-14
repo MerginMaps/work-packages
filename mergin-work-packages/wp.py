@@ -251,7 +251,8 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
             wp_changeset_base_input,
             wp_changeset_base_output,
             wp_rebased_changeset,
-            wp_rebased_changeset_conflicts)
+            wp_rebased_changeset_conflicts,
+        )
         if os.path.isfile(wp_rebased_changeset):
             geodiff.list_changes(wp_rebased_changeset, wp_rebased_changeset_json)
         else:
@@ -301,16 +302,13 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
             wp_tab_name_esc = escape_double_quotes(wp_table_name)
             if wp_filter_method == WPTable.FILTER_METHOD_GEOMETRY:
                 intersects_query = f"ST_Intersects(GeomFromGPB(geometry), ST_GeomFromText('{wp_value}'))"
-                c.execute(
-                    f"""delete from {wp_tab_name_esc} where not {intersects_query}""")
+                c.execute(f"""delete from {wp_tab_name_esc} where not {intersects_query}""")
             else:
                 wp_filter_column = wp_table.filter_column_name
                 wp_filter_column_escaped = escape_double_quotes(wp_filter_column)
                 c.execute(f"""delete from {wp_tab_name_esc} where {wp_filter_column_escaped} IS NULL""")
                 if isinstance(wp_value, (str, int, float)):
-                    c.execute(
-                        f"""delete from {wp_tab_name_esc} where {wp_filter_column_escaped} != ?""", (wp_value,)
-                    )
+                    c.execute(f"""delete from {wp_tab_name_esc} where {wp_filter_column_escaped} != ?""", (wp_value,))
                 elif isinstance(wp_value, list):
                     values_str = ",".join(["?"] * len(wp_value))
                     c.execute(
