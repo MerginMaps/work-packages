@@ -1,5 +1,10 @@
 name: Auto Tests
 on: [push]
+
+concurrency:
+  group: ci-${{github.ref}}-autotests
+  cancel-in-progress: true
+  
 jobs:
   linux_tests:
     runs-on: ubuntu-latest
@@ -13,10 +18,11 @@ jobs:
               python3-pip \
               python3-pytest \
               python3-gdal \
-              python3-yaml \
               libsqlite3-mod-spatialite
-          pip3 install pysqlite3 pygeodiff mergin-client
+              
+          pip3 install -r requirements.txt
 
       - name: run tests
         run: |
-          python3 -m pytest
+          cd workpackages
+          python3 -m pytest ../
