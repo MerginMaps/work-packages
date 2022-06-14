@@ -12,7 +12,8 @@ jobs:
           sudo apt-get update && sudo apt-get install -y \
               python3-pip \
               python3-pytest \
-              python3-gdal
+              python3-gdal \
+              libsqlite3-mod-spatialite
               
           pip3 install -r requirements.txt
 
