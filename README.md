@@ -40,7 +40,7 @@ If you would like to start with a simple pre-configured project:
    To install `mergin-work-packages` you need to get and unzip the latest [release from GitHub](https://github.com/MerginMaps/mergin-work-packages/releases)
    and then install the dependencies:
 ```
-    cd mergin-work-packages
+    cd mergin-work-packages/workpackages
     python3 -m venv venv
     ./venv/bin/pip3 install -r requirements.txt
     ./venv/bin/python3 wp_mergin.py --help
