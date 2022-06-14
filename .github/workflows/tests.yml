@@ -11,11 +11,8 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y \
               python3-pip \
-              python3-pytest \
-              python3-gdal \
-              python3-yaml \
-              libsqlite3-mod-spatialite
-          pip3 install pysqlite3 pygeodiff mergin-client
+              python3-pytest
+          pip3 install -r requirements.txt
 
       - name: run tests
         run: |

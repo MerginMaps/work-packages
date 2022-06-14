@@ -1,0 +1,2 @@
+pysqlite3
+mergin-client >= 0.7.3
