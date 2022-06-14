@@ -1,3 +1,4 @@
+[![Code Style](https://github.com/MerginMaps/mergin-work-packages/actions/workflows/code_style.yml/badge.svg)](https://github.com/MerginMaps/mergin-work-packages/actions/workflows/code_style.yml)
 ![Auto Tests](https://github.com/MerginMaps/mergin-work-packages/workflows/Auto%20Tests/badge.svg)
 
 # mergin-work-packages
