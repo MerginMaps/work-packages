@@ -35,14 +35,24 @@ If you would like to start with a simple pre-configured project:
    You could use e.g. `john/farms-Kyle` and `john/farms-Emma` for project names of work packages.
    After your edits do not forget to sync your changes back to Mergin Maps service.
 
-3. Run the tool with the name of your project:
+3. Install the tool  
+   To install `mergin-work-packages` you need to get and unzip the latest [release from GitHub](https://github.com/MerginMaps/mergin-work-packages/releases)
+   and then install the dependencies:
+```
+    cd mergin-work-packages
+    python3 -m venv venv
+    ./venv/bin/pip3 install -r requirements.txt
+    ./venv/bin/python3 wp_mergin.py --help
+```
+
+4. Run the tool with the name of your project:
    ```bash
-   $ python3 wp_mergin.py john/test-work-packages
+   $ ./venv/bin/python3 wp_mergin.py john/test-work-packages
    ```
    After the initial run, you should see that the work package projects `john/farms-Kyle` and `john/farms-Emma`
    got created and they are ready to be used in QGIS or Mergin Maps Input, containing subsets of data of the main project.
-
-4. After you do modifications of the data in any of the projects (the main one or the work package projects)
+   
+5. After you do modifications of the data in any of the projects (the main one or the work package projects)
    and run the tool again as in step 3, changes will be propagated among projects.
 
 ## How to use
