@@ -205,7 +205,6 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
 
         # re-map local fids of the WP gpkg to master fids (based on previously created mapping DB)
         for x in [wp_gpkg_base, wp_gpkg_input]:
-
             db = sqlite3.connect(x)
             db.enable_load_extension(True)  # for spatialite
             c = db.cursor()
