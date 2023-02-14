@@ -61,7 +61,7 @@ def parse_args() -> MerginWPContext:
     parser = argparse.ArgumentParser()
     parser.add_argument("mergin_project", nargs="?")
     parser.add_argument("--cache-dir", nargs="?")
-    parser.add_argument("--max_workers", nargs="?", type=int, const=8, default=8)
+    parser.add_argument("--max-workers", nargs="?", type=int, const=8, default=8)
     parser.add_argument("--dry-run", action="store_true")
     params = parser.parse_args()
     ctx.master_mergin_project = params.mergin_project  # e.g.  martin/wp-master
@@ -176,7 +176,7 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
     # list of WP names that did not exist previously (and we will have to create a new Mergin project for them)
     wp_new = set()
 
-    def prepare_work_packages(wp):
+    def prepare_work_package(wp):
         wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
         wp_dir = os.path.join(ctx.tmp_dir, "wp-" + wp_name)
 
@@ -195,12 +195,12 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
             wp_new.add(wp_name)
 
     with ThreadPoolExecutor(max_workers=ctx.max_workers) as executor:
-        executor.map(prepare_work_packages, wp_config.wp_names)
+        executor.map(prepare_work_package, wp_config.wp_names)
 
     return wp_config, wp_new, gpkg_path, master_project_files
 
 
-def push_mergin_project(mc, directory, max_retires=3, sleep_time=5):
+def push_mergin_project(mc, directory, max_retries=3, sleep_time=5):
     push_attempt = 1
     while True:
         try:
@@ -211,7 +211,7 @@ def push_mergin_project(mc, directory, max_retires=3, sleep_time=5):
             mergin.client_push.push_project_finalize(job)
             return True
         except mergin.ClientError:
-            if push_attempt <= max_retires:
+            if push_attempt <= max_retries:
                 print(f"Push attempt number {push_attempt} failed. Retrying in {sleep_time} seconds...")
                 time.sleep(sleep_time)
                 push_attempt += 1
@@ -222,7 +222,7 @@ def push_mergin_project(mc, directory, max_retires=3, sleep_time=5):
 def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, master_project_files):
     """Push data to all Mergin Maps projects"""
 
-    def push_work_packages(wp):
+    def push_work_package(wp):
         wp_name, wp_value, wp_mergin = wp.name, wp.value, wp.mergin_project
         wp_dir = os.path.join(ctx.tmp_dir, "wp-" + wp_name)
         if wp_name in wp_new:
@@ -251,13 +251,13 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
                 print(f"This is a dry run - no changes pushed for work package: {wp_name}")
                 return
             print("Uploading new version of the project: " + wp_mergin + " for work package " + wp_name)
-            if push_mergin_project(ctx.mc, wp_dir):
-                print("Uploaded a new version: " + mergin.MerginProject(wp_dir).metadata["version"])
-            else:
-                print("No changes (not creating a new version).")
+        if push_mergin_project(ctx.mc, wp_dir):
+            print("Uploaded a new version: " + mergin.MerginProject(wp_dir).metadata["version"])
+        else:
+            print("No changes (not creating a new version).")
 
     with ThreadPoolExecutor(max_workers=ctx.max_workers) as executor:
-        executor.map(push_work_packages, wp_config.wp_names)
+        executor.map(push_work_package, wp_config.wp_names)
 
     # in the last step, let's update the master project
     # (update the master database file and update base files for work packages)
