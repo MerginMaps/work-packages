@@ -244,13 +244,13 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
                 os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                 shutil.copy(src_path, dst_path)
 
-            # new version of the geopackage
-            shutil.copy(os.path.join(ctx.wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(wp_dir, gpkg_path))
+        # new version of the geopackage
+        shutil.copy(os.path.join(ctx.wp_alg_output_dir, wp_name + ".gpkg"), os.path.join(wp_dir, gpkg_path))
 
-            if ctx.dry_run:
-                print(f"This is a dry run - no changes pushed for work package: {wp_name}")
-                return
-            print("Uploading new version of the project: " + wp_mergin + " for work package " + wp_name)
+        if ctx.dry_run:
+            print(f"This is a dry run - no changes pushed for work package: {wp_name}")
+            return
+        print("Uploading new version of the project: " + wp_mergin + " for work package " + wp_name)
         if push_mergin_project(ctx.mc, wp_dir):
             print("Uploaded a new version: " + mergin.MerginProject(wp_dir).metadata["version"])
         else:
