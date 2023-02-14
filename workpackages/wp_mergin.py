@@ -61,7 +61,7 @@ def parse_args() -> MerginWPContext:
     parser = argparse.ArgumentParser()
     parser.add_argument("mergin_project", nargs="?")
     parser.add_argument("--cache-dir", nargs="?")
-    parser.add_argument("--max_workers", nargs='?', type=int, const=8, default=8)
+    parser.add_argument("--max_workers", nargs="?", type=int, const=8, default=8)
     parser.add_argument("--dry-run", action="store_true")
     params = parser.parse_args()
     ctx.master_mergin_project = params.mergin_project  # e.g.  martin/wp-master
