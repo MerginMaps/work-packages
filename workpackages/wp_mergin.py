@@ -287,7 +287,7 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
             print("No changes (not creating a new version).")
     try:
         shutil.rmtree(ctx.tmp_dir)
-    except PermissionError:
+    except (PermissionError, OSError):
         print(f"Couldn't remove temporary dir. Removing '{ctx.tmp_dir}' skipped.")
 
     print("Done.")
