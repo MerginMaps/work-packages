@@ -32,7 +32,7 @@ def download_project_with_cache(mc, project_path, directory, cache_dir, version=
     shutil.copytree(project_cache_dir, directory)
 
 
-class ProjectLocker:
+class ProjectPadlock:
     def __init__(self, mc):
         self.mc = mc
         self.locked_projects = {}

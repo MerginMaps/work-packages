@@ -30,7 +30,7 @@ import tempfile
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from version import __version__
-from wp_utils import download_project_with_cache, ProjectLocker
+from wp_utils import download_project_with_cache, ProjectPadlock
 from wp import load_config_from_yaml, make_work_packages, WPConfig
 
 
@@ -53,7 +53,7 @@ class MerginWPContext:
         self.wp_alg_base_dir = None
         self.wp_alg_input_dir = None
         self.wp_alg_output_dir = None
-        self.project_locker = None
+        self.project_padlock = None
 
 
 def parse_args() -> MerginWPContext:
@@ -109,8 +109,7 @@ def initialize(ctx: MerginWPContext):
 
     ctx.master_dir = os.path.join(ctx.tmp_dir, "master")
     ctx.master_config_yaml = os.path.join(ctx.master_dir, "mergin-work-packages.yml")
-    if not ctx.skip_lock:
-        ctx.project_locker = ProjectLocker(ctx.mc)
+    ctx.project_padlock = ProjectPadlock(ctx.mc)
     return ctx
 
 
@@ -199,8 +198,8 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
             print("Done.")
 
             shutil.copy(os.path.join(wp_dir, gpkg_path), os.path.join(ctx.wp_alg_input_dir, wp_name + ".gpkg"))
-            if ctx.project_locker:
-                ctx.project_locker.lock(wp_dir)
+            if not ctx.skip_lock:
+                ctx.project_padlock.lock(wp_dir)
         else:
             print("First time encountered WP " + wp_name + " - not collecting input")
             wp_new.add(wp_name)
@@ -210,8 +209,8 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
             if result:
                 print(result)
 
-    if ctx.project_locker:
-        ctx.project_locker.lock(ctx.master_dir)
+    if not ctx.skip_lock:
+        ctx.project_padlock.lock(ctx.master_dir)
 
     return wp_config, wp_new, gpkg_path, master_project_files
 
@@ -267,8 +266,8 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
             print(f"This is a dry run - no changes pushed for work package: {wp_name}")
             return
         print("Uploading new version of the project: " + wp_mergin + " for work package " + wp_name)
-        if ctx.project_locker:
-            ctx.project_locker.unlock(wp_dir)
+        if not ctx.skip_lock:
+            ctx.project_padlock.unlock(wp_dir)
         if push_mergin_project(ctx.mc, wp_dir):
             print("Uploaded a new version: " + mergin.MerginProject(wp_dir).metadata["version"])
         else:
@@ -301,8 +300,8 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
         print(f"This is a dry run - no changes pushed into the master project: {ctx.master_mergin_project}")
     else:
         print("Uploading new version of the master project: " + ctx.master_mergin_project)
-        if ctx.project_locker:
-            ctx.project_locker.unlock(ctx.master_dir)
+        if not ctx.skip_lock:
+            ctx.project_padlock.unlock(ctx.master_dir)
         if push_mergin_project(ctx.mc, ctx.master_dir):
             print("Uploaded a new version: " + mergin.MerginProject(ctx.master_dir).metadata["version"])
         else:
@@ -312,8 +311,8 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
     except (PermissionError, OSError):
         print(f"Couldn't remove temporary dir. Removing '{ctx.tmp_dir}' skipped.")
     # Release locked projects if any left - just in case
-    if ctx.project_locker:
-        ctx.project_locker.unlock_all()
+    if not ctx.skip_lock:
+        ctx.project_padlock.unlock_all()
     print("Done.")
 
 
