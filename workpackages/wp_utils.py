@@ -33,6 +33,11 @@ def download_project_with_cache(mc, project_path, directory, cache_dir, version=
 
 
 class ProjectPadlock:
+    """
+    Class for handling projects locking/unlocking on the Mergin Maps server.
+    This allows to prevent editing projects by other users while mergin-work-packages script is running.
+    """
+
     def __init__(self, mc):
         self.mc = mc
         self.locked_projects = {}
@@ -42,7 +47,7 @@ class ProjectPadlock:
         mp = mergin.MerginProject(directory)
         project_path = mp.metadata["name"]
         local_version = mp.metadata["version"]
-        size = 0
+        size = 1
         checksum = hashlib.sha1().hexdigest()
         changes = {
             "added": [{"path": "lock.txt", "size": size, "checksum": checksum}],
