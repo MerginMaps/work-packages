@@ -154,19 +154,19 @@ def create_farm_dataset(gpkg_path):
         layer_farms, "POLYGON((5 15,10 15,10 20,5 20,5 15))", {"name": "Melody Orchard", "owner": "Kyle Flynn"}, fid=4
     )
 
-    # Oasis garden - only apples
+    # Oasis garden - only apples (Emma)
     create_feature(layer_trees, "POINT(6 6)", {"tree_species_id": 1, "farm_id": 1})
     create_feature(layer_trees, "POINT(8 7)", {"tree_species_id": 1, "farm_id": 1})
     create_feature(layer_trees, "POINT(7 8)", {"tree_species_id": 1, "farm_id": 1})
 
-    # Tranquility estate - mix of trees
+    # Tranquility estate - mix of trees (Emma)
     create_feature(layer_trees, "POINT(16 6)", {"tree_species_id": 1, "farm_id": 2})
     create_feature(layer_trees, "POINT(18 7)", {"tree_species_id": 2, "farm_id": 2})
     create_feature(layer_trees, "POINT(17 8)", {"tree_species_id": 3, "farm_id": 2})
 
-    # Rainbow farm - just one mango tree
+    # Rainbow farm - just one mango tree (Lily)
     create_feature(layer_trees, "POINT(17.5 17.5)", {"tree_species_id": 3, "farm_id": 3})
 
-    # Melody orchard - a mix
+    # Melody orchard - a mix (Kyle)
     create_feature(layer_trees, "POINT(8 17)", {"tree_species_id": 2, "farm_id": 4})
     create_feature(layer_trees, "POINT(7 18)", {"tree_species_id": 3, "farm_id": 4})
