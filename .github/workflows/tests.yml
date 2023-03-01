@@ -24,5 +24,4 @@ jobs:
 
       - name: run tests
         run: |
-          cd workpackages
-          python3 -m pytest ../
+          python3 -m pytest .

@@ -11,8 +11,8 @@ from pathlib import Path
 
 import yaml
 
-from wp_utils import escape_double_quotes
-from remapping import remap_table_master_to_wp, remap_table_wp_to_master
+from .wp_utils import escape_double_quotes
+from .remapping import remap_table_master_to_wp, remap_table_wp_to_master
 
 # Layout of files:
 #

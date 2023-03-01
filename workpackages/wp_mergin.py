@@ -29,9 +29,9 @@ import shutil
 import tempfile
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from version import __version__
-from wp_utils import download_project_with_cache
-from wp import load_config_from_yaml, make_work_packages, WPConfig
+from .version import __version__
+from .wp_utils import download_project_with_cache
+from .wp import load_config_from_yaml, make_work_packages, WPConfig
 
 
 class MerginWPContext:
@@ -41,6 +41,10 @@ class MerginWPContext:
         self.max_workers = None
         self.dry_run = None
         self.mc = None
+
+        self.mergin_url = None
+        self.mergin_user = None
+        self.mergin_password = None
 
         self.master_mergin_project = None
 
@@ -78,23 +82,29 @@ def initialize(ctx: MerginWPContext):
     if not ctx.master_mergin_project:
         raise ValueError("Need a parameter with master Mergin Maps project name")
 
-    mergin_user = os.getenv("MERGIN_USERNAME")
-    if mergin_user is None:
-        mergin_user = input("Mergin Maps username: ")
+    if ctx.mergin_user is None:
+        ctx.mergin_user = os.getenv("MERGIN_USERNAME")
+    if ctx.mergin_user is None:
+        ctx.mergin_user = input("Mergin Maps username: ")
 
-    mergin_password = os.getenv("MERGIN_PASSWORD")
-    if mergin_password is None:
-        mergin_password = getpass.getpass(f"Password for {mergin_user}: ")
+    if ctx.mergin_password is None:
+        ctx.mergin_password = os.getenv("MERGIN_PASSWORD")
+    if ctx.mergin_password is None:
+        ctx.mergin_password = getpass.getpass(f"Password for {ctx.mergin_user}: ")
 
-    mergin_url = os.getenv("MERGIN_URL")
-    if mergin_url is None:
-        mergin_url = mergin.MerginClient.default_url()
+    if ctx.mergin_url is None:
+        ctx.mergin_url = os.getenv("MERGIN_URL")
+    if ctx.mergin_url is None:
+        ctx.mergin_url = mergin.MerginClient.default_url()
 
     # this will create a directory with a random name, e.g. /tmp/mergin-work-packages-w7tbsyd7
     ctx.tmp_dir = tempfile.mkdtemp(prefix="mergin-work-packages-")
 
     ctx.mc = mergin.MerginClient(
-        url=mergin_url, login=mergin_user, password=mergin_password, plugin_version=f"work-packages/{__version__}"
+        url=ctx.mergin_url,
+        login=ctx.mergin_user,
+        password=ctx.mergin_password,
+        plugin_version=f"work-packages/{__version__}"
     )
 
     ctx.wp_alg_dir = os.path.join(ctx.tmp_dir, "wp")  # where we expect "base", "input" subdirs
