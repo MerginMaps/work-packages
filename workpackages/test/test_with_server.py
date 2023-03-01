@@ -1,4 +1,3 @@
-
 import pytest
 import os
 import shutil
@@ -75,8 +74,8 @@ def _assert_value_equals(gpkg_filename, table_name, fid, field_name, expected_va
 
 
 def test_wp_1(mc: MerginClient):
-    """ Do a basic test of creating WP projects from master and doing simple updates,
-    to make sure that projects on the server get updated as expected. """
+    """Do a basic test of creating WP projects from master and doing simple updates,
+    to make sure that projects on the server get updated as expected."""
 
     project_master_name = "farms-master"
     project_kyle_name = "farms-Kyle"
@@ -87,7 +86,7 @@ def test_wp_1(mc: MerginClient):
     project_dir_master = os.path.join(TMP_DIR, "wp-edits", project_master_name)
     project_dir_kyle = os.path.join(TMP_DIR, "wp-edits", project_kyle_name)
     project_dir_emma = os.path.join(TMP_DIR, "wp-edits", project_emma_name)
-    cache_dir = os.path.join(TMP_DIR, 'wp-cache')
+    cache_dir = os.path.join(TMP_DIR, "wp-cache")
 
     remove_folders([cache_dir])
     cleanup(mc, project_master_full, [project_dir_master])
@@ -99,13 +98,13 @@ def test_wp_1(mc: MerginClient):
     config_yaml = os.path.join(project_dir_master, "mergin-work-packages.yml")
     shutil.copy(os.path.join(this_dir, "config-farm-basic.yml"), config_yaml)
 
-    with open(config_yaml, 'r') as file:
+    with open(config_yaml, "r") as file:
         filedata = file.read()
-        filedata = filedata.replace('martin/', API_USER+'/')
-    with open(config_yaml, 'w') as file:
+        filedata = filedata.replace("martin/", API_USER + "/")
+    with open(config_yaml, "w") as file:
         file.write(filedata)
 
-    create_farm_dataset(os.path.join(project_dir_master, 'farms.gpkg'))
+    create_farm_dataset(os.path.join(project_dir_master, "farms.gpkg"))
     _assert_row_counts(os.path.join(project_dir_master, "farms.gpkg"), expected_farms=4, expected_trees=9)
 
     mc.create_project_and_push(project_master_name, project_dir_master, namespace=API_USER)
@@ -160,9 +159,7 @@ def test_wp_1(mc: MerginClient):
     # do a change in a WP project
     #
 
-    open_layer_and_update_feature(
-         os.path.join(project_dir_kyle, "farms.gpkg"), "trees", 1000000, {"age_years": 10}
-    )
+    open_layer_and_update_feature(os.path.join(project_dir_kyle, "farms.gpkg"), "trees", 1000000, {"age_years": 10})
     mc.push_project(project_dir_kyle)
 
     run_wp_mergin_with_context(ctx)
@@ -182,9 +179,7 @@ def test_wp_1(mc: MerginClient):
     # do a change in the master project
     #
 
-    open_layer_and_update_feature(
-         os.path.join(project_dir_master, "farms.gpkg"), "trees", 3, {"age_years": 5}
-    )
+    open_layer_and_update_feature(os.path.join(project_dir_master, "farms.gpkg"), "trees", 3, {"age_years": 5})
     mc.push_project(project_dir_master)
     assert project_version(project_dir_master) == "v4"
 

@@ -104,7 +104,7 @@ def initialize(ctx: MerginWPContext):
         url=ctx.mergin_url,
         login=ctx.mergin_user,
         password=ctx.mergin_password,
-        plugin_version=f"work-packages/{__version__}"
+        plugin_version=f"work-packages/{__version__}",
     )
 
     ctx.wp_alg_dir = os.path.join(ctx.tmp_dir, "wp")  # where we expect "base", "input" subdirs
