@@ -191,7 +191,6 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
             wp_info = wp_projects_info[wp_mergin]
             try:
                 server_version = wp_info["version"]
-                print(server_version)
             except KeyError:
                 server_version = None
             print("Downloading work package project " + wp_mergin + "...")
