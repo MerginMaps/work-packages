@@ -40,15 +40,15 @@ If you would like to start with a simple pre-configured project:
    To install `mergin-work-packages` you need to get and unzip the latest [release from GitHub](https://github.com/MerginMaps/mergin-work-packages/releases)
    and then install the dependencies:
 ```
-    cd mergin-work-packages/workpackages
+    cd mergin-work-packages
     python3 -m venv venv
     ./venv/bin/pip3 install -r requirements.txt
-    ./venv/bin/python3 wp_mergin.py --help
+    ./venv/bin/python3 mergin_work_packages.py --help
 ```
 
 4. Run the tool with the name of your project:
    ```bash
-   $ ./venv/bin/python3 wp_mergin.py john/test-work-packages
+   $ ./venv/bin/python3 mergin_work_packages.py john/test-work-packages
    ```
    After the initial run, you should see that the work package projects `john/farms-Kyle` and `john/farms-Emma`
    got created and they are ready to be used in QGIS or Mergin Maps Input, containing subsets of data of the main project.
@@ -129,7 +129,7 @@ set to run the tool. We only need to specify name of the main Mergin Maps projec
 will ask about the login credentials to Mergin Maps and run the processing:
 
 ```bash
-$ python3 wp_mergin.py "My Company/Survey"
+$ python3 mergin_work_packages.py "My Company/Survey"
 ```
 
 After the initial run of the tool, the `Survey Team A` and `Survey Team B` Mergin Maps projects will be created,

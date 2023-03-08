@@ -1,6 +1,11 @@
 name: Auto Tests
 on: [push]
 
+env:
+  TEST_MERGIN_URL: https://test.dev.merginmaps.com/
+  TEST_API_USERNAME: test_plugin
+  TEST_API_PASSWORD: ${{ secrets.MERGINTEST_API_PASSWORD }}
+
 concurrency:
   group: ci-${{github.ref}}-autotests
   cancel-in-progress: true
@@ -24,5 +29,4 @@ jobs:
 
       - name: run tests
         run: |
-          cd workpackages
-          python3 -m pytest ../
+          python3 -m pytest .

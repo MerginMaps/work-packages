@@ -10,8 +10,8 @@ from .init_test_data import (
     open_layer_and_update_feature,
     open_layer_and_delete_feature,
 )
-from wp import load_config_from_yaml, make_work_packages
-from wp_utils import escape_double_quotes
+from ..wp import load_config_from_yaml, make_work_packages
+from ..wp_utils import escape_double_quotes
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
 
