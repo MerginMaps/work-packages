@@ -63,7 +63,7 @@ def parse_args() -> MerginWPContext:
     ctx = MerginWPContext()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("mergin_project", nargs="?")
+    parser.add_argument("mergin_project")
     parser.add_argument("--cache-dir", nargs="?")
     parser.add_argument("--max-workers", nargs="?", type=int, default=8)
     parser.add_argument("--dry-run", action="store_true")
@@ -317,7 +317,3 @@ def run_wp_mergin(mergin_project, cache_dir=None, dry_run=False):
     ctx.cache_dir = cache_dir
     ctx.dry_run = dry_run
     run_wp_mergin_with_context(ctx)
-
-
-if __name__ == "__main__":
-    run_wp_mergin_with_context(parse_args())
