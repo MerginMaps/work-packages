@@ -20,6 +20,6 @@ args = parser.parse_args()
 ver = args.version
 print("using version " + ver)
 
-about_file = os.path.join(dir_path, os.pardir, "mergin-work-packages", "version.py")
+about_file = os.path.join(dir_path, os.pardir, "workpackages", "version.py")
 print("patching " + about_file)
 replace_in_file(about_file, "__version__\s=\s\".*", "__version__ = \"" + ver + "\"")

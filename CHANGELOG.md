@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Download/pull and push projects in parallel (by default max. 8 project in parallel) (#48)
+- Retry push if it fails (up to three times)
+- Lock projects to lower the chance of the project getting modified while the script is running (#49)
+- Added Docker container
+- Significantly improved coverage of auto tests
+
+
 ## 1.0.1
 ### Features
 - rebranding and URL update (#40)
