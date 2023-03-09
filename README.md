@@ -173,3 +173,16 @@ MERGIN_WORKPACKAGES_TMP=~/tmp/mergin_wp /Applications/QGIS3.16.app/Contents/MacO
 ## Developing on Windows
 If you're experiencing sqlite3 DLL issues after installing tool dependencies make sure that you have path with `sqlite3.dll` library added to the system PATH
 environment variables list. For OSGeo4W users you can use `C:\OSGeo4W64\bin`.
+
+
+## Releasing new version
+
+1. Run `./scripts/update_version.bash 1.2.3`
+2. Tag the new version in git repo and create a release on GitHub
+3. Build and upload the new container (both with the new version tag and as the latest tag)
+   ```
+   docker build --no-cache -t lutraconsulting/mergin-work-packages .
+   docker tag lutraconsulting/mergin-work-packages lutraconsulting/mergin-work-packages:1.0.3
+   docker push lutraconsulting/mergin-work-packages:1.0.3
+   docker push lutraconsulting/mergin-work-packages:latest
+   ```
