@@ -140,6 +140,14 @@ The main project and the work package projects can be shared with others and upd
 you run the tool, it will do the two-way sync: pull changes from projects for teams A and B, merge
 them with changes in the main project, and finally update data in all connected Mergin Maps projects.
 
+## Running with Docker
+
+There is a Docker container available, so it is possible to run the work packaging script like this:
+
+```bash
+$ docker run -i -t lutraconsulting/mergin-work-packages john/test-work-packages
+```
+
 ## Under the hood
 
 The following figure illustrates how the merge/split algorithm works in two steps to first merge changes
