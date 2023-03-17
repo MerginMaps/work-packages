@@ -187,7 +187,12 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
     master_project_files.remove(gpkg_path)
     print("Master project files to copy to new projects: " + str(master_project_files))
     print("Fetching work packages projects info...")
-    wp_projects_info = ctx.mc.get_projects_by_names([wp.mergin_project for wp in wp_config.wp_names])
+    group_size = 50  # Maximum project names group size accepted by `get_projects_by_names`
+    wp_names_groups = [wp_config.wp_names[i:i + group_size] for i in range(0, len(wp_config.wp_names), group_size)]
+    wp_projects_info = {}
+    for wp_names_group in wp_names_groups:
+        project_group_info = ctx.mc.get_projects_by_names([wp.mergin_project for wp in wp_names_group])
+        wp_projects_info.update(project_group_info)
     # list of WP names that did not exist previously (and we will have to create a new Mergin project for them)
     wp_new = set()
 
