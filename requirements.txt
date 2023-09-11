@@ -1,2 +1,2 @@
 pyyaml
-mergin-client == 0.8.2
+mergin-client == 0.8.3
