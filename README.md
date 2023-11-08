@@ -1,7 +1,7 @@
 [![Code Style](https://github.com/MerginMaps/mergin-work-packages/actions/workflows/code_style.yml/badge.svg)](https://github.com/MerginMaps/mergin-work-packages/actions/workflows/code_style.yml)
 ![Auto Tests](https://github.com/MerginMaps/mergin-work-packages/workflows/Auto%20Tests/badge.svg)
 
-# mergin-work-packages
+# Mergin Maps Work Packages
 
 Mergin Maps Work Packages - manage field surveys for multiple teams.
 
@@ -37,7 +37,7 @@ If you would like to start with a simple pre-configured project:
    After your edits do not forget to sync your changes back to Mergin Maps service.
 
 3. Install the tool  
-   To install `mergin-work-packages` you need to get and unzip the latest [release from GitHub](https://github.com/MerginMaps/mergin-work-packages/releases)
+   To install `mergin-work-packages` you need to get and unzip the latest [release from GitHub](https://github.com/MerginMaps/work-packages/releases)
    and then install the dependencies:
 ```
     cd mergin-work-packages
