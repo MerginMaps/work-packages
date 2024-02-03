@@ -32,7 +32,7 @@ def mc():
 def cleanup(mc: MerginClient, project: str, dirs: list):
     # cleanup leftovers from previous test if needed such as remote project and local directories
     try:
-        mc.delete_project(project)
+        mc.delete_project_now(project)
     except ClientError:
         pass
     remove_folders(dirs)
