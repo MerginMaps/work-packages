@@ -35,6 +35,10 @@ from .remapping import remap_table_master_to_wp, remap_table_wp_to_master
 #   WP1-input-output.diff   -- difference between "input" and "output" (collated changes to be applied to the WP)
 
 
+# set to True when testing/debugging temporary diffs
+DEBUG_DIFFS = False
+
+
 class WPTable(object):
     """Describes how to handle a table in work packages"""
 
@@ -157,7 +161,8 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         master_base_to_input = os.path.join(tmp_dir, "master-base-input.diff")
         master_base_to_input_json = os.path.join(tmp_dir, "master-base-input.json")
         geodiff.create_changeset(master_gpkg_base, master_gpkg_input, master_base_to_input)
-        geodiff.list_changes(master_base_to_input, master_base_to_input_json)
+        if DEBUG_DIFFS:
+            geodiff.list_changes(master_base_to_input, master_base_to_input_json)
 
     # create new master_gpkg in the output directory
     shutil.copy(master_gpkg_input, master_gpkg_output)
@@ -171,6 +176,8 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         raise ValueError("remap.db should not exist yet!")
     if os.path.exists(remap_db_base):
         shutil.copy(remap_db_base, remap_db_output)
+
+    print("STAGE 1 [WP -> MASTER]")
 
     # STAGE 1: Bring the changes from WPs to master
     # (remap WP database + create changeset + rebase changeset)
@@ -220,8 +227,8 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         wp_changeset_base_input = os.path.join(tmp_dir, wp_name + "-base-input.diff")
         wp_changeset_base_input_json = os.path.join(tmp_dir, wp_name + "-base-input.json")
 
-        wp_changeset_base_output = os.path.join(tmp_dir, wp_name + "-base-output.diff")
-        wp_changeset_base_output_json = os.path.join(tmp_dir, wp_name + "-base-output.json")
+        tmp_master_base_output = os.path.join(tmp_dir, "tmp-master-base-output.diff")
+        tmp_master_base_output_json = os.path.join(tmp_dir, "tmp-master-base-output.json")
 
         wp_rebased_changeset = os.path.join(tmp_dir, wp_name + "-rebased.diff")
         wp_rebased_changeset_json = os.path.join(tmp_dir, wp_name + "-rebased.json")
@@ -229,13 +236,26 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         wp_rebased_changeset_conflicts = os.path.join(tmp_dir, wp_name + "-rebased-conflicts.json")
 
         # create changeset using pygeodiff using wp_gpkg_base + wp_gpkg_input
-        # print("--- create changeset")
         geodiff.create_changeset(wp_gpkg_base, wp_gpkg_input, wp_changeset_base_input)
-        geodiff.create_changeset(wp_gpkg_base, master_gpkg_output, wp_changeset_base_output)
-        # summarize changes that have happened in master (base master VS input master)
-        # (this is not needed anywhere in the code, but may be useful for debugging)
-        geodiff.list_changes(wp_changeset_base_input, wp_changeset_base_input_json)
-        geodiff.list_changes(wp_changeset_base_output, wp_changeset_base_output_json)
+        if DEBUG_DIFFS:
+            geodiff.list_changes(wp_changeset_base_input, wp_changeset_base_input_json)
+
+        if not geodiff.has_changes(wp_changeset_base_input):
+            # there are no changes in the WP -> nothing to do
+            print(" -- no changes")
+            continue
+
+        geodiff.create_changeset(master_gpkg_base, master_gpkg_output, tmp_master_base_output)
+        if DEBUG_DIFFS:
+            geodiff.list_changes(tmp_master_base_output, tmp_master_base_output_json)
+
+        if not geodiff.has_changes(tmp_master_base_output):
+            # master gpkg has no difference between "base" and "output" yet,
+            # so we can just apply wp_changeset_base_input without rebasing
+            print(" -- apply (without rebase)")
+            geodiff.apply_changeset(master_gpkg_output, wp_changeset_base_input)
+            continue
+
         # Create rebased changeset
         # rebase changeset - to resolve conflicts, for example:
         # - WP1 deleted a row that WP2 also wants to delete
@@ -249,14 +269,15 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
             "",
             master_gpkg_base,
             wp_changeset_base_input,
-            wp_changeset_base_output,
+            tmp_master_base_output,
             wp_rebased_changeset,
             wp_rebased_changeset_conflicts,
         )
-        if os.path.isfile(wp_rebased_changeset):
+
+        if DEBUG_DIFFS:
             geodiff.list_changes(wp_rebased_changeset, wp_rebased_changeset_json)
-        else:
-            continue
+
+        print(" -- apply (with rebase)")
         geodiff.apply_changeset(master_gpkg_output, wp_rebased_changeset)
 
     # summarize changes that have happened in WPs (input master VS output master)
@@ -264,7 +285,8 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
     master_input_to_output = os.path.join(output_dir, "master-input-output.diff")
     master_input_to_output_json = os.path.join(output_dir, "master-input-output.json")
     geodiff.create_changeset(master_gpkg_input, master_gpkg_output, master_input_to_output)
-    geodiff.list_changes(master_input_to_output, master_input_to_output_json)
+    if DEBUG_DIFFS:
+        geodiff.list_changes(master_input_to_output, master_input_to_output_json)
 
     if os.path.exists(master_gpkg_base):
         # summarize all the changes that have happened since last run (collated master changes + wp changes)
@@ -272,13 +294,19 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         master_base_to_output = os.path.join(output_dir, "master-base-output.diff")
         master_base_to_output_json = os.path.join(output_dir, "master-base-output.json")
         geodiff.create_changeset(master_gpkg_base, master_gpkg_output, master_base_to_output)
-        geodiff.list_changes(master_base_to_output, master_base_to_output_json)
+        if DEBUG_DIFFS:
+            geodiff.list_changes(master_base_to_output, master_base_to_output_json)
+
+    print("STAGE 2 [MASTER -> WP]")
 
     # STAGE 2: Regenerate WP databases
     # (make "new" WP database + filter database based on WP + remap DB)
 
     for wp in wp_config.wp_names:
         wp_name, wp_value, wp_mergin_project = wp.name, wp.value, wp.mergin_project
+
+        print("WP ", wp_name)
+
         wp_gpkg_base = os.path.join(base_dir, wp_name + ".gpkg")  # should not have been modified by user
         wp_gpkg_input = os.path.join(input_dir, wp_name + ".gpkg")  # may have been modified by user
         wp_gpkg_output = os.path.join(output_dir, wp_name + ".gpkg")  # does not exist yet
@@ -319,6 +347,7 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
                     # we may want to support some custom SQL at some point too
                     raise ValueError("what?")
             remap_table_master_to_wp(c, wp_table.name, wp_name)
+
         # TODO: drop tables that are not listed at all (?)
         c.execute("COMMIT")
 
@@ -332,7 +361,8 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         # get changeset between the one received from WP and newly created GPKG
         if os.path.exists(wp_gpkg_input):
             geodiff.create_changeset(wp_gpkg_input, wp_gpkg_output, wp_changeset_input_to_output)
-            geodiff.list_changes(wp_changeset_input_to_output, wp_changeset_input_to_output_json)
+            if DEBUG_DIFFS:
+                geodiff.list_changes(wp_changeset_input_to_output, wp_changeset_input_to_output_json)
         else:
             # first time this WP is created...
             pass  # TODO: what to do?
