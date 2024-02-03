@@ -259,8 +259,7 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
             # we need to create new project
             if not ctx.dry_run:
                 print("Creating project: " + wp_mergin + " for work package " + wp_name)
-                wp_mergin_project_namespace, wp_mergin_project_name = wp_mergin.split("/")
-                ctx.mc.create_project(wp_mergin_project_name, False, wp_mergin_project_namespace)
+                ctx.mc.create_project(wp_mergin, False)
                 download_project_with_cache(ctx.mc, wp_mergin, wp_dir, ctx.cache_dir)
             else:
                 os.makedirs(wp_dir, exist_ok=True)  # Make WP project folder that would be created by the Mergin Client
@@ -284,7 +283,7 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
         if not ctx.skip_lock:
             ctx.project_padlock.unlock(wp_dir)
         if push_mergin_project(ctx.mc, wp_dir):
-            print("Uploaded a new version: " + mergin.MerginProject(wp_dir).metadata["version"])
+            print("Uploaded a new version: " + mergin.MerginProject(wp_dir).version())
         else:
             print("No changes (not creating a new version).")
 
@@ -318,7 +317,7 @@ def push_data_to_projects(ctx: MerginWPContext, wp_config, wp_new, gpkg_path, ma
         if not ctx.skip_lock:
             ctx.project_padlock.unlock(ctx.master_dir)
         if push_mergin_project(ctx.mc, ctx.master_dir):
-            print("Uploaded a new version: " + mergin.MerginProject(ctx.master_dir).metadata["version"])
+            print("Uploaded a new version: " + mergin.MerginProject(ctx.master_dir).version())
         else:
             print("No changes (not creating a new version).")
     try:

@@ -7,6 +7,7 @@ an auxiliary table that records pairs of IDs for features: master ID + work pack
 Any newly seen feature IDs in master table are assigned corresponding feature IDs
 in the work package table (and vice versa).
 """
+
 from .wp_utils import escape_double_quotes
 
 

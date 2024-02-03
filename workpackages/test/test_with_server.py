@@ -46,7 +46,7 @@ def remove_folders(dirs):
 
 
 def project_version(project_dir):
-    return MerginProject(project_dir).metadata["version"]
+    return MerginProject(project_dir).version()
 
 
 def _assert_row_counts(gpkg_filename, expected_farms, expected_trees):
@@ -107,7 +107,7 @@ def test_wp_1(mc: MerginClient):
     create_farm_dataset(os.path.join(project_dir_master, "farms.gpkg"))
     _assert_row_counts(os.path.join(project_dir_master, "farms.gpkg"), expected_farms=4, expected_trees=9)
 
-    mc.create_project_and_push(project_master_name, project_dir_master, namespace=API_USER)
+    mc.create_project_and_push(project_master_full, project_dir_master)
 
     ctx = MerginWPContext()
     ctx.mergin_url = SERVER_URL

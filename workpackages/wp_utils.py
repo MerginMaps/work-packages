@@ -1,6 +1,7 @@
 """
 Module with useful utilities.
 """
+
 import json
 import hashlib
 import mergin
@@ -24,7 +25,7 @@ def download_project_with_cache(mc, project_path, directory, cache_dir, version=
         mc.download_project(project_path, project_cache_dir, version=version)
     else:
         mp = mergin.MerginProject(project_cache_dir)
-        if server_latest_version is None or mp.metadata["version"] != server_latest_version:
+        if server_latest_version is None or mp.version() != server_latest_version:
             mc.pull_project(project_cache_dir)
         else:
             print(f"Local and server project versions are the same. Pulling '{project_path}' project skipped")
@@ -45,8 +46,8 @@ class ProjectPadlock:
     def lock(self, directory):
         print(f"--- locking dir: '{directory}'")
         mp = mergin.MerginProject(directory)
-        project_path = mp.metadata["name"]
-        local_version = mp.metadata["version"]
+        project_path = mp.project_full_name()
+        local_version = mp.version()
         size = 1
         checksum = hashlib.sha1().hexdigest()
         changes = {

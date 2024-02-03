@@ -3,6 +3,7 @@ Combined split/merge algorithm that:
 1. Brings any changes from work packages to the master database
 2. Regenerates work packages based on the master database
 """
+
 import sqlite3
 import os
 import shutil
