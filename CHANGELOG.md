@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Improve robustness and speed of sync (#60, #61)
+- Fix error when more than 50 projects are used (#53)
+- Add a developer option to keep diffs when needed for debugging (#46)
+- Bump mergin-py-client to 0.9.0
+
 ## 1.1.0
 
 - Download/pull and push projects in parallel (by default max. 8 project in parallel) (#48)
