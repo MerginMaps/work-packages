@@ -313,9 +313,87 @@ def test_insert_row_master():
     _assert_row_exists(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000002)
 
 
+def test_insert_row_wp1_wp2():
+    """One row inserted in WP1, one row in the same table inserted in WP2"""
+    config_file = os.path.join(this_dir, "config-farm-basic.yml")
+    tmp_dir_1 = _make_initial_farm_work_packages(config_file)
+    tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
+
+    # modify WPs - add a row in two different WPs
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "Emma.gpkg"), "trees", "POINT(7 17)", {"tree_species_id": 2, "farm_id": 2}
+    )
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "Kyle.gpkg"), "trees", "POINT(6 16)", {"tree_species_id": 1, "farm_id": 4}
+    )
+
+    # run work packaging
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
+    output_dir = os.path.join(tmp_dir_2.name, "output")
+
+    # there should be two new trees in master, one new tree for Kyle, one new tree for Emma
+    _assert_row_counts(os.path.join(output_dir, "master.gpkg"), expected_farms=4, expected_trees=11)
+    _assert_row_counts(os.path.join(output_dir, "Kyle.gpkg"), expected_farms=1, expected_trees=3)
+    _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=2, expected_trees=7)
+    _assert_row_exists(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000002)
+    _assert_row_exists(os.path.join(output_dir, "Emma.gpkg"), "trees", 1000006)
+
+
+def test_insert_row_master_wp():
+    """One row inserted in master, on row in the same table inserted in WP"""
+    config_file = os.path.join(this_dir, "config-farm-basic.yml")
+    tmp_dir_1 = _make_initial_farm_work_packages(config_file)
+    tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
+
+    # modify master and WP
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "master.gpkg"),
+        "trees",
+        "POINT(9 19)",
+        {"tree_species_id": 3, "farm_id": 4},
+    )
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "Kyle.gpkg"), "trees", "POINT(6 16)", {"tree_species_id": 1, "farm_id": 4}
+    )
+
+    # run work packaging
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
+    output_dir = os.path.join(tmp_dir_2.name, "output")
+
+    # there should be two new trees in master, one new tree for Kyle, one new tree for Emma
+    _assert_row_counts(os.path.join(output_dir, "master.gpkg"), expected_farms=4, expected_trees=11)
+    _assert_row_counts(os.path.join(output_dir, "Kyle.gpkg"), expected_farms=1, expected_trees=4)
+    _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=2, expected_trees=6)
+    _assert_row_exists(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000002)
+    _assert_row_exists(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000003)
+
+
+def test_delete_row_master_wp():
+    """One row gets deleted in master, and the same row gets deleted in WP"""
+    config_file = os.path.join(this_dir, "config-farm-basic.yml")
+    tmp_dir_1 = _make_initial_farm_work_packages(config_file)
+    tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
+
+    # modify master and WP dataset - delete the same tree in both (master fid 9 mapped to 1000001 for Kyle)
+    open_layer_and_delete_feature(os.path.join(tmp_dir_2.name, "input", "master.gpkg"), "trees", 9)
+    open_layer_and_delete_feature(os.path.join(tmp_dir_2.name, "input", "master.gpkg"), "trees", 1000001)
+
+    # run work packaging
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
+    output_dir = os.path.join(tmp_dir_2.name, "output")
+
+    # there should be one tree missing for master and for Kyle
+    _assert_row_counts(os.path.join(output_dir, "master.gpkg"), expected_farms=4, expected_trees=8)
+    _assert_row_counts(os.path.join(output_dir, "Kyle.gpkg"), expected_farms=1, expected_trees=1)
+    _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=2, expected_trees=6)
+    _assert_row_missing(os.path.join(output_dir, "master.gpkg"), "trees", 9)
+    _assert_row_missing(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000001)
+
+
 # TODO: more test cases
-# - delete_master_delete_wp  # one row deleted in both master and WP
 # - delete_master_update_wp  # one row deleted in master while it is updated in WP
 # - update_master_delete_wp  # one row updated in master while it is deleted in WP
-# - insert_row_master_and_wp  # one row has bee inserted in master, another row in WP
 # - update_master_update_wp  # one row updated in master and the same row updated in WP
