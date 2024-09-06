@@ -408,7 +408,7 @@ def test_not_using_fid_colum():
     os.makedirs(os.path.join(tmp_dir, "input"))
 
     # get data
-    shutil.copy(os.path.join(this_dir, "data", "master.gpkg"), os.path.join(tmp_dir, "input", "master.gpkg"))
+    shutil.copy(os.path.join(this_dir, "data", "farms_without_fid.gpkg"), os.path.join(tmp_dir, "input", "master.gpkg"))
 
     # get config
     wp_config = load_config_from_yaml(os.path.join(this_dir, "config-farm-basic.yml"))
