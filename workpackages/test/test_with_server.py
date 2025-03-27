@@ -20,7 +20,7 @@ this_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 def create_client(user, pwd):
-    assert SERVER_URL and SERVER_URL.rstrip("/") != "https://app.dev.merginmaps.com" and user and pwd
+    assert SERVER_URL and API_USER and USER_PWD
     return MerginClient(SERVER_URL, login=user, password=pwd)
 
 
