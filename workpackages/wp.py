@@ -8,6 +8,7 @@ import sqlite3
 import os
 import shutil
 import pygeodiff
+from collections import defaultdict
 from pathlib import Path
 
 import yaml
@@ -366,3 +367,47 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         else:
             # first time this WP is created...
             pass  # TODO: what to do?
+
+    # STAGE 3: Cleanup remap.db
+    print("STAGE 3 [remap.db CLEANUP]")
+    existing_master_fids = defaultdict(set)
+    # Connect to the OUTPUT master.gpkg and get all FIDs.
+    # We don't need to look into each WP after all features are mapped back to master.
+    db = sqlite3.connect(master_gpkg_output)
+    c = db.cursor()
+    # Iterate over all tables and get unique FIDs
+    for wp_table in wp_config.wp_tables:
+        wp_table_name = wp_table.name
+        wp_tab_name_esc = escape_double_quotes(wp_table_name)
+        c.execute(f"""SELECT fid FROM {wp_tab_name_esc};""")
+        existing_master_fids[wp_table_name] |= set(r[0] for r in c.fetchall())
+    db.close()
+    # Iterate over all remap.db tables and get unique master_fids
+    existing_remap_master_fids = defaultdict(set)
+    master_id_column_escaped = escape_double_quotes("master_fid")
+    db = sqlite3.connect(remap_db_output)
+    c = db.cursor()
+    for wp in wp_config.wp_names:
+        wp_name = wp.name
+        for wp_table in wp_config.wp_tables:
+            wp_table_name = wp_table.name
+            table_wp_name = f"{wp_table_name}_{wp_name}"
+            table_wp_name_esc = escape_double_quotes(table_wp_name)
+            c.execute(f"""SELECT {master_id_column_escaped} FROM {table_wp_name_esc};""")
+            existing_remap_master_fids[wp_table_name] |= set(r[0] for r in c.fetchall())
+    # Detect and delete remap.db tables rows for master_ids which are not present in the OUTPUT master.gpkg
+    c.execute("BEGIN")
+    for wp in wp_config.wp_names:
+        wp_name = wp.name
+        for wp_table in wp_config.wp_tables:
+            wp_table_name = wp_table.name
+            missing_master_fids = list(existing_remap_master_fids[wp_table_name] - existing_master_fids[wp_table_name])
+            if not missing_master_fids:
+                continue
+            table_wp_name = f"{wp_table_name}_{wp_name}"
+            table_wp_name_esc = escape_double_quotes(table_wp_name)
+            missing_master_fids_str = ",".join(["?"] * len(missing_master_fids))
+            c.execute(f"""DELETE FROM {table_wp_name_esc} WHERE {master_id_column_escaped} IN ({missing_master_fids_str});""", missing_master_fids)
+    c.execute("COMMIT")
+    c.execute("VACUUM")
+    db.close()

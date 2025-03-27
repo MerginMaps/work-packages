@@ -393,6 +393,61 @@ def test_delete_row_master_wp():
     _assert_row_missing(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000001)
 
 
+def test_wp_add_wp_delete_wp_duplicate_add_feature():
+    """
+    Test following workflow scenario (with running make_work_packages function after each step):
+    - we have 2 WPs with a same filter condition (WP1, WP2);
+    - we are adding a new feature (FID: 1111111) to WP1;
+    - we are deleting feature (FID: 1111111) from the WP1;
+    - we are adding a new feature (FID: 1111111) to WP2;
+    """
+    config_file = os.path.join(this_dir, "config-farm-duplicate_wp.yml")
+    tmp_dir_1 = _make_initial_farm_work_packages(config_file)
+    output_dir = os.path.join(tmp_dir_1.name, "output")
+    output_files = os.listdir(output_dir)
+    assert "Emma.gpkg" in output_files
+    assert "Kyle.gpkg" in output_files
+    assert "Kyle_duplicate.gpkg" in output_files
+    assert "master.gpkg" in output_files
+
+    tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
+
+    # modify 'Kyle' WP by adding a new 'trees' feature with a FID '1111111'
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "Kyle.gpkg"),
+        "trees",
+        "POINT(6 16)",
+        {"tree_species_id": 1, "farm_id": 4},
+        fid=1111111
+    )
+    # run work packaging
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
+    tmp_dir_3 = _prepare_next_run_work_packages(tmp_dir_2)
+    # modify 'Kyle' WP by removing 'trees' feature with a FID '1111111'
+    open_layer_and_delete_feature(
+        os.path.join(tmp_dir_3.name, "input", "Kyle.gpkg"), "trees", 1111111
+    )
+    # run work packaging 2nd time
+    make_work_packages(tmp_dir_3.name, wp_config)
+    tmp_dir_4 = _prepare_next_run_work_packages(tmp_dir_3)
+    # modify 'Kyle_duplicate' WP by adding a new (but with previously used FID '1111111') 'trees' feature
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_4.name, "input", "Kyle_duplicate.gpkg"),
+        "trees",
+        "POINT(6 16)",
+        {"tree_species_id": 1, "farm_id": 4},
+        fid=1111111
+    )
+    # run work packaging 3rd time
+    make_work_packages(tmp_dir_4.name, wp_config)
+    final_output_dir = os.path.join(tmp_dir_4.name, "output")
+    final_output_files = os.listdir(final_output_dir)
+    assert "Emma.gpkg" in final_output_files
+    assert "Kyle.gpkg" in final_output_files
+    assert "Kyle_duplicate.gpkg" in final_output_files
+    assert "master.gpkg" in final_output_files
+
 # TODO: more test cases
 # - delete_master_update_wp  # one row deleted in master while it is updated in WP
 # - update_master_delete_wp  # one row updated in master while it is deleted in WP
