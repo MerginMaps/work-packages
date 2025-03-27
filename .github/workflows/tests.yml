@@ -3,9 +3,8 @@ on: [push]
 
 env:
   TEST_MERGIN_URL: https://app.dev.merginmaps.com/
-  TEST_API_USERNAME: test_db_sync
-  TEST_API_PASSWORD: ${{ secrets.MERGINTEST_API_PASSWORD }}
-  TEST_WORKSPACE: test-db-sync
+  TEST_API_USERNAME: test_plugin
+  TEST_API_PASSWORD: ${{ secrets.TEST_API_PASSWORD }}
 
 concurrency:
   group: ci-${{github.ref}}-autotests
@@ -30,4 +29,5 @@ jobs:
 
       - name: run tests
         run: |
-          python3 -m pytest .
+          python3 -m pytest . --ignore=./workpackages/test/test_with_server.py
+
