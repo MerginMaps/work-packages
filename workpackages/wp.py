@@ -407,7 +407,10 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
             table_wp_name = f"{wp_table_name}_{wp_name}"
             table_wp_name_esc = escape_double_quotes(table_wp_name)
             missing_master_fids_str = ",".join(["?"] * len(missing_master_fids))
-            c.execute(f"""DELETE FROM {table_wp_name_esc} WHERE {master_id_column_escaped} IN ({missing_master_fids_str});""", missing_master_fids)
+            c.execute(
+                f"""DELETE FROM {table_wp_name_esc} WHERE {master_id_column_escaped} IN ({missing_master_fids_str});""",
+                missing_master_fids,
+            )
     c.execute("COMMIT")
     c.execute("VACUUM")
     db.close()

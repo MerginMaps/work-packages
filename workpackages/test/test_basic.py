@@ -418,16 +418,14 @@ def test_wp_add_wp_delete_wp_duplicate_add_feature():
         "trees",
         "POINT(6 16)",
         {"tree_species_id": 1, "farm_id": 4},
-        fid=1111111
+        fid=1111111,
     )
     # run work packaging
     wp_config = load_config_from_yaml(config_file)
     make_work_packages(tmp_dir_2.name, wp_config)
     tmp_dir_3 = _prepare_next_run_work_packages(tmp_dir_2)
     # modify 'Kyle' WP by removing 'trees' feature with a FID '1111111'
-    open_layer_and_delete_feature(
-        os.path.join(tmp_dir_3.name, "input", "Kyle.gpkg"), "trees", 1111111
-    )
+    open_layer_and_delete_feature(os.path.join(tmp_dir_3.name, "input", "Kyle.gpkg"), "trees", 1111111)
     # run work packaging 2nd time
     make_work_packages(tmp_dir_3.name, wp_config)
     tmp_dir_4 = _prepare_next_run_work_packages(tmp_dir_3)
@@ -437,7 +435,7 @@ def test_wp_add_wp_delete_wp_duplicate_add_feature():
         "trees",
         "POINT(6 16)",
         {"tree_species_id": 1, "farm_id": 4},
-        fid=1111111
+        fid=1111111,
     )
     # run work packaging 3rd time
     make_work_packages(tmp_dir_4.name, wp_config)
@@ -447,6 +445,7 @@ def test_wp_add_wp_delete_wp_duplicate_add_feature():
     assert "Kyle.gpkg" in final_output_files
     assert "Kyle_duplicate.gpkg" in final_output_files
     assert "master.gpkg" in final_output_files
+
 
 # TODO: more test cases
 # - delete_master_update_wp  # one row deleted in master while it is updated in WP
