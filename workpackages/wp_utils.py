@@ -39,6 +39,11 @@ class ProjectPadlock:
     This allows to prevent editing projects by other users while mergin-work-packages script is running.
     """
 
+    LOCK_EXPIRED_MESSAGE = (
+        "The requested URL was not found on the server. "
+        "If you entered the URL manually please check your spelling and try again."
+    )
+
     def __init__(self, mc):
         self.mc = mc
         self.locked_projects = {}
@@ -74,8 +79,12 @@ class ProjectPadlock:
             try:
                 self.mc.post(f"/v1/project/push/cancel/{locked_transaction_id}")
             except mergin.ClientError as err:
-                print("--- push cancelling failed! " + str(err))
-                raise err
+                error_message = str(err)
+                if self.LOCK_EXPIRED_MESSAGE in error_message:
+                    print("--- push cancelling skipped as project lock expired automatically")
+                else:
+                    print("--- push cancelling failed! " + error_message)
+                    raise err
             del self.locked_projects[directory]
             print(f"--- released locked dir: '{directory}' (transaction ID: {locked_transaction_id})")
 
