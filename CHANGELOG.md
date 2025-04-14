@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- fix error when the table does not use `fid` column as primary key (#64)
+
 ## 1.2.0
 
 - Improve robustness and speed of sync (#60, #61)

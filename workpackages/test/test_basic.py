@@ -397,3 +397,34 @@ def test_delete_row_master_wp():
 # - delete_master_update_wp  # one row deleted in master while it is updated in WP
 # - update_master_delete_wp  # one row updated in master while it is deleted in WP
 # - update_master_update_wp  # one row updated in master and the same row updated in WP
+
+
+def test_not_using_fid_colum():
+    """Special test case where data do not use `fid` column for primary key as usual in GPKG files,
+    but rather custom named column `objectid`."""
+
+    tmp_dir_obj = TemporaryDirectory(prefix="test-mergin-work-packages-")
+    tmp_dir = tmp_dir_obj.name
+    os.makedirs(os.path.join(tmp_dir, "input"))
+
+    # get data
+    shutil.copy(os.path.join(this_dir, "data", "farms_without_fid.gpkg"), os.path.join(tmp_dir, "input", "master.gpkg"))
+
+    # get config
+    wp_config = load_config_from_yaml(os.path.join(this_dir, "config-farm-basic.yml"))
+    # switch from using `fid` (that does not exist) to `objectid`
+    wp_config.wp_tables[0].filter_column_name = "objectid"
+
+    # run alg
+    make_work_packages(tmp_dir, wp_config)
+
+    # run checks
+    output_dir = os.path.join(tmp_dir, "output")
+    output_files = os.listdir(output_dir)
+    assert "Emma.gpkg" in output_files
+    assert "Kyle.gpkg" in output_files
+    assert "master.gpkg" in output_files
+
+    _assert_row_counts(os.path.join(output_dir, "master.gpkg"), expected_farms=4, expected_trees=9)
+    _assert_row_counts(os.path.join(output_dir, "Kyle.gpkg"), expected_farms=1, expected_trees=2)
+    _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=2, expected_trees=6)

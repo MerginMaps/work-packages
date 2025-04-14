@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 
 from .wp_utils import escape_double_quotes
-from .remapping import remap_table_master_to_wp, remap_table_wp_to_master
+from .remapping import remap_table_master_to_wp, remap_table_wp_to_master, _table_pkey
 
 # Layout of files:
 #
@@ -191,7 +191,9 @@ def make_work_packages(data_dir: str, wp_config: WPConfig) -> None:
         for wp_table in wp_config.wp_tables:
             wp_table_name = wp_table.name
             wp_tab_name_esc = escape_double_quotes(wp_table_name)
-            c.execute(f"""SELECT max(fid) FROM {wp_tab_name_esc};""")
+            pkey_column = _table_pkey(c, wp_table_name)
+            pkey_column_escaped = escape_double_quotes(pkey_column)
+            c.execute(f"""SELECT max({pkey_column_escaped}) FROM {wp_tab_name_esc};""")
             new_master_fid = c.fetchone()[0]
             if new_master_fid is None:
                 new_master_fid = 1  # empty table so far
