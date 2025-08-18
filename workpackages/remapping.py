@@ -62,7 +62,7 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     master_fids_missing = set()
     sql = (
         f"""SELECT {pkey_column_escaped} FROM {table_name_escaped} """
-        f"""LEFT JOIN {remap_table_escaped} AS mapped ON fid = mapped.master_fid WHERE mapped.wp_fid IS NULL"""
+        f"""LEFT JOIN {remap_table_escaped} AS mapped ON {pkey_column_escaped} = mapped.master_fid WHERE mapped.wp_fid IS NULL"""
     )
     for row in cursor.execute(sql):
         master_fids_missing.add(row[0])
@@ -83,7 +83,7 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     mapping = []
     sql = (
         f"""SELECT {pkey_column_escaped}, mapped.wp_fid FROM {table_name_escaped} """
-        f"""LEFT JOIN {remap_table_escaped} AS mapped ON fid = mapped.master_fid"""
+        f"""LEFT JOIN {remap_table_escaped} AS mapped ON {pkey_column_escaped} = mapped.master_fid"""
     )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
@@ -117,7 +117,7 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     wp_fids_missing = set()
     sql = (
         f"""SELECT {pkey_column_escaped} FROM {table_name_escaped} """
-        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid WHERE mapped.master_fid IS NULL"""
+        f"""LEFT JOIN {remap_table} AS mapped ON {pkey_column_escaped} = mapped.wp_fid WHERE mapped.master_fid IS NULL"""
     )
     for row in cursor.execute(sql):
         wp_fids_missing.add(row[0])
@@ -131,7 +131,7 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     mapping = []  # list of tuples (wp_fid, master_fid)
     sql = (
         f"""SELECT {pkey_column_escaped}, mapped.master_fid FROM {table_name_escaped} """
-        f"""LEFT JOIN {remap_table} AS mapped ON fid = mapped.wp_fid"""
+        f"""LEFT JOIN {remap_table} AS mapped ON {pkey_column_escaped} = mapped.wp_fid"""
     )
     for row in cursor.execute(sql):
         mapping.append((row[0], row[1]))
@@ -141,5 +141,6 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
 
     for wp_fid, master_fid in mapping:
         cursor.execute(
-            f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE fid = ?""", (master_fid, -wp_fid)
+            f"""UPDATE {table_name_escaped} SET {pkey_column_escaped} = ? WHERE {pkey_column_escaped} = ?""",
+            (master_fid, -wp_fid),
         )

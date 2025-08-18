@@ -2,9 +2,10 @@ name: Auto Tests
 on: [push]
 
 env:
-  TEST_MERGIN_URL: https://test.dev.merginmaps.com/
-  TEST_API_USERNAME: test_plugin
+  TEST_MERGIN_URL: https://app.dev.merginmaps.com/
+  TEST_API_USERNAME: test_db_sync
   TEST_API_PASSWORD: ${{ secrets.MERGINTEST_API_PASSWORD }}
+  TEST_WORKSPACE: test-db-sync
 
 concurrency:
   group: ci-${{github.ref}}-autotests

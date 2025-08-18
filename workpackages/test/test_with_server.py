@@ -13,6 +13,7 @@ from .init_test_data import create_farm_dataset, open_layer_and_update_feature
 SERVER_URL = os.environ.get("TEST_MERGIN_URL")
 API_USER = os.environ.get("TEST_API_USERNAME")
 USER_PWD = os.environ.get("TEST_API_PASSWORD")
+WORKSPACE = os.environ.get("TEST_WORKSPACE")
 
 TMP_DIR = tempfile.gettempdir()
 
@@ -80,9 +81,9 @@ def test_wp_1(mc: MerginClient):
     project_master_name = "farms-master"
     project_kyle_name = "farms-Kyle"
     project_emma_name = "farms-Emma"
-    project_master_full = API_USER + "/" + project_master_name
-    project_kyle_full = API_USER + "/" + project_kyle_name
-    project_emma_full = API_USER + "/" + project_emma_name
+    project_master_full = WORKSPACE + "/" + project_master_name
+    project_kyle_full = WORKSPACE + "/" + project_kyle_name
+    project_emma_full = WORKSPACE + "/" + project_emma_name
     project_dir_master = os.path.join(TMP_DIR, "wp-edits", project_master_name)
     project_dir_kyle = os.path.join(TMP_DIR, "wp-edits", project_kyle_name)
     project_dir_emma = os.path.join(TMP_DIR, "wp-edits", project_emma_name)
@@ -100,7 +101,7 @@ def test_wp_1(mc: MerginClient):
 
     with open(config_yaml, "r") as file:
         filedata = file.read()
-        filedata = filedata.replace("martin/", API_USER + "/")
+        filedata = filedata.replace("martin/", WORKSPACE + "/")
     with open(config_yaml, "w") as file:
         file.write(filedata)
 
