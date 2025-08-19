@@ -60,6 +60,16 @@ def _assert_row_exists(gpkg_filename, table_name, fid):
     assert row[0] == 1, f"Row for fid {fid} is not present but it should be"
 
 
+def _assert_remap_entries(db_filename, table_name, expected_entries):
+    """Asserts that the remap table has exactly the given entries"""
+    db = sqlite3.connect(db_filename)
+    c = db.cursor()
+    actual_entries = set()
+    for row in c.execute(f"""SELECT master_fid, wp_fid FROM {table_name}"""):
+        actual_entries.add((row[0], row[1]))
+    assert actual_entries == expected_entries
+
+
 def _make_initial_farm_work_packages(config_file):
     """
     1. create the initial "farms" dataset
@@ -391,6 +401,136 @@ def test_delete_row_master_wp():
     _assert_row_counts(os.path.join(output_dir, "Emma.gpkg"), expected_farms=2, expected_trees=6)
     _assert_row_missing(os.path.join(output_dir, "master.gpkg"), "trees", 9)
     _assert_row_missing(os.path.join(output_dir, "Kyle.gpkg"), "trees", 1000001)
+
+
+def test_remapping_table_wp_to_master():
+    """
+    Test that the remapping tables get correctly updated when features
+    are inserted/deleted in WP.
+
+    Test following workflow scenario (with running make_work_packages function after each step):
+    - we have 2 WPs with a same filter condition (Kyle, Kyle_duplicate);
+    - we are adding a new feature (FID: 1111111) to Kyle;
+    - we are deleting feature (FID: 1111111) from Kyle;
+    - we are adding a new feature (FID: 2222222) to Kyle_duplicate;
+    After each step we test that the remap database has expected content.
+    """
+    config_file = os.path.join(this_dir, "config-farm-duplicate-wp.yml")
+    tmp_dir_1 = _make_initial_farm_work_packages(config_file)
+    wp_config = load_config_from_yaml(config_file)
+
+    # modify 'Kyle' WP by adding a new 'trees' feature with a FID '1111111'
+    # and run work packaging
+    tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "Kyle.gpkg"),
+        "trees",
+        "POINT(6 16)",
+        {"tree_species_id": 1, "farm_id": 4},
+        fid=1111111,
+    )
+    make_work_packages(tmp_dir_2.name, wp_config)
+
+    _assert_remap_entries(
+        os.path.join(tmp_dir_2.name, "output", "remap.db"),
+        "trees_Kyle",
+        set([(8, 1000000), (9, 1000001), (10, 1111111)]),
+    )
+    _assert_remap_entries(
+        os.path.join(tmp_dir_2.name, "output", "remap.db"),
+        "trees_Kyle_duplicate",
+        set([(8, 1000000), (9, 1000001), (10, 1000002)]),
+    )
+
+    # modify 'Kyle' WP by removing 'trees' feature with a FID '1111111'
+    # run work packaging 2nd time
+    tmp_dir_3 = _prepare_next_run_work_packages(tmp_dir_2)
+    open_layer_and_delete_feature(os.path.join(tmp_dir_3.name, "input", "Kyle.gpkg"), "trees", 1111111)
+    make_work_packages(tmp_dir_3.name, wp_config)
+
+    _assert_remap_entries(
+        os.path.join(tmp_dir_3.name, "output", "remap.db"), "trees_Kyle", set([(8, 1000000), (9, 1000001)])
+    )
+    _assert_remap_entries(
+        os.path.join(tmp_dir_3.name, "output", "remap.db"), "trees_Kyle_duplicate", set([(8, 1000000), (9, 1000001)])
+    )
+
+    # modify 'Kyle_duplicate' WP by adding a new 'trees' feature with FID '2222222'
+    # run work packaging 3rd time
+    tmp_dir_4 = _prepare_next_run_work_packages(tmp_dir_3)
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_4.name, "input", "Kyle_duplicate.gpkg"),
+        "trees",
+        "POINT(6 16)",
+        {"tree_species_id": 1, "farm_id": 4},
+        fid=2222222,
+    )
+    make_work_packages(tmp_dir_4.name, wp_config)
+
+    _assert_remap_entries(
+        os.path.join(tmp_dir_4.name, "output", "remap.db"),
+        "trees_Kyle_duplicate",
+        set([(8, 1000000), (9, 1000001), (10, 2222222)]),
+    )
+    _assert_remap_entries(
+        os.path.join(tmp_dir_4.name, "output", "remap.db"),
+        "trees_Kyle",
+        set([(8, 1000000), (9, 1000001), (10, 1000002)]),
+    )
+
+
+def test_remapping_table_master_to_wp():
+    """
+    Test that the remapping tables get correctly updated when features
+    are inserted/deleted in master.
+
+    Test following workflow scenario (with running make_work_packages function after each step):
+    - we are adding a new feature (FID: 10) to master;
+    - we are deleting feature (FID: 10) from master;
+    After each step we test that the remap database has expected content.
+    """
+    config_file = os.path.join(this_dir, "config-farm-duplicate-wp.yml")
+    tmp_dir_1 = _make_initial_farm_work_packages(config_file)
+    output_dir = os.path.join(tmp_dir_1.name, "output")
+    output_files = os.listdir(output_dir)
+    assert "Emma.gpkg" in output_files
+    assert "Kyle.gpkg" in output_files
+    assert "Kyle_duplicate.gpkg" in output_files
+    assert "master.gpkg" in output_files
+
+    _assert_remap_entries(
+        os.path.join(tmp_dir_1.name, "output", "remap.db"), "trees_Kyle", set([(8, 1000000), (9, 1000001)])
+    )
+
+    tmp_dir_2 = _prepare_next_run_work_packages(tmp_dir_1)
+
+    # modify master by adding a new 'trees' feature with a FID 10
+    open_layer_and_create_feature(
+        os.path.join(tmp_dir_2.name, "input", "master.gpkg"),
+        "trees",
+        "POINT(6 16)",
+        {"tree_species_id": 1, "farm_id": 4},
+        fid=10,
+    )
+    # run work packaging
+    wp_config = load_config_from_yaml(config_file)
+    make_work_packages(tmp_dir_2.name, wp_config)
+
+    _assert_remap_entries(
+        os.path.join(tmp_dir_2.name, "output", "remap.db"),
+        "trees_Kyle",
+        set([(8, 1000000), (9, 1000001), (10, 1000002)]),
+    )
+
+    tmp_dir_3 = _prepare_next_run_work_packages(tmp_dir_2)
+    # modify master by removing 'trees' feature with a FID 10
+    open_layer_and_delete_feature(os.path.join(tmp_dir_3.name, "input", "master.gpkg"), "trees", 10)
+    # run work packaging 2nd time
+    make_work_packages(tmp_dir_3.name, wp_config)
+
+    _assert_remap_entries(
+        os.path.join(tmp_dir_3.name, "output", "remap.db"), "trees_Kyle", set([(8, 1000000), (9, 1000001)])
+    )
 
 
 # TODO: more test cases

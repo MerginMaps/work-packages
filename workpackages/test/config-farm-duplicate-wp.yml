@@ -1,0 +1,25 @@
+file: farms.gpkg
+
+work-packages:
+  - name: Kyle
+    value: 4
+    mergin-project: martin/farms-Kyle
+
+  - name: Kyle_duplicate
+    value: 4
+    mergin-project: martin/farms-Kyle-duplicate
+
+  - name: Emma
+    value:
+      - 1
+      - 2
+    mergin-project: martin/farms-Emma
+
+tables:
+  - name: farms
+    method: filter-column
+    filter-column-name: fid
+  - name: trees
+    method: filter-column
+    filter-column-name: farm_id
+    

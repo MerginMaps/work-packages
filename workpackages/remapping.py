@@ -51,6 +51,9 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     For each row:
     - remap row exists for master_fid -> use wp_fid
     - remap does not exist for master_fid -> insert (master_fid, 1000000+master_fid)
+
+    We also clean up remap table not to include any entries where master_fid
+    does not exist anymore.
     """
     remap_table_escaped = remap_table_name(table_name, wp_name)
     _create_remap_table_if_not_exists(cursor, remap_table_escaped)
@@ -67,7 +70,7 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
     for row in cursor.execute(sql):
         master_fids_missing.add(row[0])
 
-    # 2. insert missing mapped ids
+    # 2. insert missing mapped ids (after a feature got added in master)
     cursor.execute(f"""SELECT max(wp_fid) FROM {remap_table_escaped}""")
     new_wp_fid = cursor.fetchone()[0]
     if new_wp_fid is None:
@@ -79,7 +82,14 @@ def remap_table_master_to_wp(cursor, table_name, wp_name):
         cursor.execute(f"""INSERT INTO {remap_table_escaped} VALUES (?, ?)""", (master_fid, new_wp_fid))
         new_wp_fid += 1
 
-    # 3. remap master ids to WP ids
+    # 3. delete redundant master ids (after a feature got deleted in master)
+    sql = (
+        f"""DELETE FROM {remap_table_escaped} WHERE master_fid NOT IN """
+        f"""   (SELECT {pkey_column_escaped} FROM {table_name_escaped})"""
+    )
+    cursor.execute(sql)
+
+    # 4. remap master ids to WP ids
     mapping = []
     sql = (
         f"""SELECT {pkey_column_escaped}, mapped.wp_fid FROM {table_name_escaped} """
@@ -105,6 +115,9 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     For each row:
     - remap row exists for wp_fid -> use master_fid
     - remap does not exist for wp_fid -> insert ([first unused master fid], wp_fid)
+
+    We also clean up remap table not to include any entries where wp_fid
+    does not exist anymore.
     """
 
     remap_table = remap_table_name(table_name, wp_name)
@@ -122,12 +135,19 @@ def remap_table_wp_to_master(cursor, table_name, wp_name, new_master_fid):
     for row in cursor.execute(sql):
         wp_fids_missing.add(row[0])
 
-    # 2. insert missing mapped ids
+    # 2. insert missing mapped ids (after a feature got added in WP)
     for wp_fid in wp_fids_missing:
         cursor.execute(f"""INSERT INTO {remap_table} VALUES (?, ?)""", (new_master_fid, wp_fid))
         new_master_fid += 1
 
-    # 3. remap WP ids to master ids
+    # 3. delete redundant master ids (after a feature got deleted in WP)
+    sql = (
+        f"""DELETE FROM {remap_table} WHERE wp_fid NOT IN """
+        f"""   (SELECT {pkey_column_escaped} FROM {table_name_escaped})"""
+    )
+    cursor.execute(sql)
+
+    # 4. remap WP ids to master ids
     mapping = []  # list of tuples (wp_fid, master_fid)
     sql = (
         f"""SELECT {pkey_column_escaped}, mapped.master_fid FROM {table_name_escaped} """
