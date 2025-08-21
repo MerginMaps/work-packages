@@ -2,7 +2,9 @@
 
 ## 1.2.1
 
-- fix error when the table does not use `fid` column as primary key (#64)
+- Fix error when the table does not use `fid` column as primary key (#64)
+- Fix unique constraint violation when updating remap table (#70)
+- Add info about project versions to allow replays when debugging (#71)
 
 ## 1.2.0
 
