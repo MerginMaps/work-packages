@@ -21,6 +21,7 @@ These files are used internally by the algorithm and should not be modified (or 
 
 import getpass
 import glob
+import json
 import time
 import mergin
 import mergin.client_push
@@ -32,6 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 from .version import __version__
 from .wp_utils import download_project_with_cache, ProjectPadlock
 from .wp import load_config_from_yaml, make_work_packages, WPConfig
+from .wp_replay import Replay
 
 
 class MerginWPContext:
@@ -226,6 +228,12 @@ def prepare_inputs(ctx: MerginWPContext) -> (WPConfig, set, str, list):
 
     if not ctx.skip_lock:
         ctx.project_padlock.lock(ctx.master_dir)
+
+    # output which versions we are about to use
+    replay = Replay.from_context(ctx, wp_config, wp_new)
+    replay_json_dump = json.dumps(replay.to_dict(), indent=2)
+    print("INPUT PROJECTS:")
+    print(replay_json_dump)
 
     return wp_config, wp_new, gpkg_path, master_project_files
 

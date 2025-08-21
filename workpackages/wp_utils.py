@@ -16,16 +16,20 @@ def escape_double_quotes(name):
 
 
 def download_project_with_cache(mc, project_path, directory, cache_dir, version=None, server_latest_version=None):
+    """Download project or pull latest changes if the project exists in the cache"""
     if not cache_dir:
+        print(f"Downloading '{project_path}' (cache not enabled)")
         mc.download_project(project_path, directory, version=version)
         return
     project_namespace, project_name = project_path.split("/")
     project_cache_dir = os.path.join(cache_dir, f"{project_namespace}_{project_name}")
     if not os.path.exists(project_cache_dir):
+        print(f"Downloading '{project_path}' project (cache miss)")
         mc.download_project(project_path, project_cache_dir, version=version)
     else:
         mp = mergin.MerginProject(project_cache_dir)
         if server_latest_version is None or mp.version() != server_latest_version:
+            print(f"Pulling '{project_path}' project from {mp.version()} to {server_latest_version}")
             mc.pull_project(project_cache_dir)
         else:
             print(f"Local and server project versions are the same. Pulling '{project_path}' project skipped")
