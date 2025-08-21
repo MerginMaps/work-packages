@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 MAINTAINER Martin Dobias "martin.dobias@lutraconsulting.co.uk"
 
 # this is to do choice of timezone upfront, because when "tzdata" package gets installed,
